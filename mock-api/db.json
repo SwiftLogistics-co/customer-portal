@@ -1,0 +1,65 @@
+{
+  "users": [
+    {
+      "id": "client_001",
+      "username": "client1", 
+      "password": "demo123",
+      "name": "John Client",
+      "email": "john@client1.com",
+      "role": "client"
+    },
+    {
+      "id": "client_002", 
+      "username": "client2",
+      "password": "demo123", 
+      "name": "Sarah Client",
+      "email": "sarah@client2.com",
+      "role": "client"
+    }
+  ],
+  "drivers": [
+    {
+      "id": "drv_001",
+      "name": "Mike Driver",
+      "phone": "+1-555-0101",
+      "vehicle": "Van #101"
+    },
+    {
+      "id": "drv_002", 
+      "name": "John Smith",
+      "phone": "+1-555-0102",
+      "vehicle": "Truck #202"
+    },
+    {
+      "id": "drv_003",
+      "name": "Lisa Wilson", 
+      "phone": "+1-555-0103",
+      "vehicle": "Van #303"
+    }
+  ],
+  "orders": [
+    {
+      "id": "ORD-001",
+      "clientId": "client_001",
+      "status": "delivered",
+      "priority": "standard", 
+      "createdAt": "2024-01-15T10:00:00Z",
+      "estimatedDelivery": "2024-01-18T16:00:00Z",
+      "assignedDriverId": "drv_001",
+      "senderName": "ABC Electronics",
+      "senderAddress": "123 Business St, New York, NY 10001", 
+      "recipientName": "John Smith",
+      "recipientAddress": "456 Home Ave, Brooklyn, NY 11201",
+      "packageType": "Electronics",
+      "weight": 2.5
+    }
+  ],
+  "driver_locations": [
+    {
+      "driverId": "drv_002",
+      "lat": 40.6782,
+      "lon": -73.9442, 
+      "timestamp": "2024-01-17T15:45:00Z"
+    }
+  ]
+}
