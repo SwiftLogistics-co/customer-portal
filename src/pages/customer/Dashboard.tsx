@@ -1,20 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Package, 
-  Truck, 
-  Clock, 
-  Search,
-  TrendingUp,
-  MapPin,
-  Calendar
-} from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { Package } from 'lucide-react';
+import { DashboardStats } from '@/components/customer/DashboardStats';
+import { QuickTracker } from '@/components/customer/QuickTracker';
+import { RecentActivity } from '@/components/customer/RecentActivity';
 
 interface DashboardStats {
   activeDeliveries: number;
@@ -32,7 +23,6 @@ interface ActivityItem {
 }
 
 const Dashboard: React.FC = () => {
-  const [trackingInput, setTrackingInput] = useState('');
   const navigate = useNavigate();
 
   const { data: stats } = useQuery<DashboardStats>({
@@ -85,39 +75,6 @@ const Dashboard: React.FC = () => {
     }
   });
 
-  const handleTrackOrder = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (trackingInput.trim()) {
-      navigate(`/orders/${trackingInput.trim()}`);
-    }
-  };
-
-  const getActivityIcon = (type: ActivityItem['type']) => {
-    switch (type) {
-      case 'order_created':
-        return <Package className="h-4 w-4" />;
-      case 'order_picked_up':
-        return <Truck className="h-4 w-4" />;
-      case 'order_delivered':
-        return <MapPin className="h-4 w-4" />;
-      case 'driver_assigned':
-        return <Truck className="h-4 w-4" />;
-    }
-  };
-
-  const getActivityColor = (type: ActivityItem['type']) => {
-    switch (type) {
-      case 'order_delivered':
-        return 'text-green-500 bg-green-50 dark:bg-green-900/20';
-      case 'order_created':
-        return 'text-blue-500 bg-blue-50 dark:bg-blue-900/20';
-      case 'order_picked_up':
-        return 'text-orange-500 bg-orange-50 dark:bg-orange-900/20';
-      case 'driver_assigned':
-        return 'text-purple-500 bg-purple-50 dark:bg-purple-900/20';
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -135,119 +92,9 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Quick tracking */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Quick Track
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleTrackOrder} className="flex gap-2">
-            <Input
-              placeholder="Enter order ID or tracking number..."
-              value={trackingInput}
-              onChange={(e) => setTrackingInput(e.target.value)}
-              className="flex-1"
-            />
-            <Button type="submit">Track</Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* Stats grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Deliveries</CardTitle>
-            <Truck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.activeDeliveries || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              <TrendingUp className="inline h-3 w-3 mr-1" />
-              +2 from yesterday
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Pickups</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.pendingPickups || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Scheduled for today
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed Today</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.completedToday || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              <Calendar className="inline h-3 w-3 mr-1" />
-              Since midnight
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalOrders || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              All time
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {recentActivity?.map((activity) => (
-              <div key={activity.id} className="flex items-center gap-4 p-3 rounded-lg border">
-                <div className={`p-2 rounded-full ${getActivityColor(activity.type)}`}>
-                  {getActivityIcon(activity.type)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
-                      {activity.orderId}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
-                    </span>
-                  </div>
-                  <p className="text-sm mt-1">{activity.message}</p>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => navigate(`/orders/${activity.orderId}`)}
-                >
-                  View
-                </Button>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <QuickTracker />
+      <DashboardStats stats={stats} />
+      <RecentActivity activities={recentActivity} />
     </div>
   );
 };

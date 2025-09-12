@@ -1,22 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Package, 
-  Truck, 
-  Clock, 
-  MapPin,
-  CheckCircle,
-  AlertCircle,
-  Route,
-  Navigation,
-  Calendar,
-  TrendingUp
-} from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { Package, Route } from 'lucide-react';
+import { DriverStats } from '@/components/driver/DriverStats';
+import { AssignedOrdersList } from '@/components/driver/AssignedOrdersList';
 
 interface DriverStats {
   assignedOrders: number;
@@ -89,45 +77,8 @@ const DriverDashboard: React.FC = () => {
     }
   });
 
-  const getStatusIcon = (status: AssignedOrder['status']) => {
-    switch (status) {
-      case 'pending':
-        return <Clock className="h-4 w-4" />;
-      case 'loaded':
-        return <Truck className="h-4 w-4" />;
-      case 'in_transit':
-        return <Navigation className="h-4 w-4" />;
-      case 'delivered':
-        return <CheckCircle className="h-4 w-4" />;
-      case 'returned':
-        return <AlertCircle className="h-4 w-4" />;
-    }
-  };
-
-  const getStatusColor = (status: AssignedOrder['status']) => {
-    switch (status) {
-      case 'pending':
-        return 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20';
-      case 'loaded':
-        return 'text-blue-600 bg-blue-50 dark:bg-blue-900/20';
-      case 'in_transit':
-        return 'text-purple-600 bg-purple-50 dark:bg-purple-900/20';
-      case 'delivered':
-        return 'text-green-600 bg-green-50 dark:bg-green-900/20';
-      case 'returned':
-        return 'text-red-600 bg-red-50 dark:bg-red-900/20';
-    }
-  };
-
-  const getPriorityColor = (priority: AssignedOrder['priority']) => {
-    switch (priority) {
-      case 'urgent':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
-      case 'express':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400';
-      case 'standard':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-    }
+  const handleViewOrder = (orderId: string) => {
+    navigate(`/driver/orders/${orderId}`);
   };
 
   return (
@@ -151,155 +102,8 @@ const DriverDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Assigned Orders</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.assignedOrders || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              For today's route
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed Today</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.completedToday || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              <TrendingUp className="inline h-3 w-3 mr-1" />
-              Successful deliveries
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Pickups</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.pendingPickups || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Awaiting collection
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Route Distance</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.estimatedDistance || 0}km</div>
-            <p className="text-xs text-muted-foreground">
-              <Calendar className="inline h-3 w-3 mr-1" />
-              Today's total
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/driver/orders?status=pending')}>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-2 bg-yellow-100 rounded-full dark:bg-yellow-900/20">
-                <Clock className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Pending Orders</h3>
-                <p className="text-sm text-muted-foreground">View orders awaiting pickup</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/driver/route')}>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-2 bg-blue-100 rounded-full dark:bg-blue-900/20">
-                <Route className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Today's Route</h3>
-                <p className="text-sm text-muted-foreground">View optimized delivery route</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/driver/orders?status=loaded')}>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-2 bg-green-100 rounded-full dark:bg-green-900/20">
-                <Truck className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Ready to Deliver</h3>
-                <p className="text-sm text-muted-foreground">Orders loaded and ready</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Today's Orders */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Today's Orders</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {todaysOrders?.map((order) => (
-              <div key={order.id} className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors">
-                <div className={`p-2 rounded-full ${getStatusColor(order.status)}`}>
-                  {getStatusIcon(order.status)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="outline" className="text-xs">
-                      {order.id}
-                    </Badge>
-                    <Badge className={`text-xs ${getPriorityColor(order.priority)}`}>
-                      {order.priority}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground capitalize">
-                      {order.status.replace('_', ' ')}
-                    </span>
-                  </div>
-                  <p className="font-medium">{order.recipientName}</p>
-                  <p className="text-sm text-muted-foreground">{order.recipientAddress}</p>
-                  {order.deliveryNotes && (
-                    <p className="text-sm text-orange-600 mt-1">Note: {order.deliveryNotes}</p>
-                  )}
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">
-                    {formatDistanceToNow(new Date(order.estimatedDelivery), { addSuffix: true })}
-                  </p>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => navigate(`/driver/orders/${order.id}`)}
-                  >
-                    View Details
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <DriverStats stats={stats} />
+      <AssignedOrdersList orders={todaysOrders} onViewOrder={handleViewOrder} />
     </div>
   );
 };
