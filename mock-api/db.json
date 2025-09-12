@@ -15,6 +15,39 @@
       "name": "Sarah Client",
       "email": "sarah@client2.com",
       "role": "client"
+    },
+    {
+      "id": "driver_001",
+      "username": "driver1",
+      "password": "demo123",
+      "name": "Mike Driver",
+      "email": "mike@swifttrack.com",
+      "role": "driver",
+      "phone": "+1-555-0101",
+      "vehicle": "Van #101",
+      "licenseNumber": "DL123456789"
+    },
+    {
+      "id": "driver_002",
+      "username": "driver2", 
+      "password": "demo123",
+      "name": "John Smith",
+      "email": "john.smith@swifttrack.com",
+      "role": "driver",
+      "phone": "+1-555-0102",
+      "vehicle": "Truck #202",
+      "licenseNumber": "DL987654321"
+    },
+    {
+      "id": "driver_003",
+      "username": "driver3",
+      "password": "demo123",
+      "name": "Lisa Wilson",
+      "email": "lisa.wilson@swifttrack.com", 
+      "role": "driver",
+      "phone": "+1-555-0103",
+      "vehicle": "Van #303",
+      "licenseNumber": "DL456789123"
     }
   ],
   "drivers": [
@@ -42,24 +75,225 @@
       "id": "ORD-001",
       "clientId": "client_001",
       "status": "delivered",
-      "priority": "standard", 
+      "priority": "urgent", 
       "createdAt": "2024-01-15T10:00:00Z",
       "estimatedDelivery": "2024-01-18T16:00:00Z",
-      "assignedDriverId": "drv_001",
+      "actualDelivery": "2024-01-18T15:30:00Z",
+      "assignedDriverId": "driver_001",
       "senderName": "ABC Electronics",
       "senderAddress": "123 Business St, New York, NY 10001", 
       "recipientName": "John Smith",
       "recipientAddress": "456 Home Ave, Brooklyn, NY 11201",
+      "recipientPhone": "+1-555-123-4567",
       "packageType": "Electronics",
-      "weight": 2.5
+      "weight": 2.5,
+      "dimensions": "30cm x 20cm x 15cm",
+      "trackingNumber": "TRK-001-ABC-2024",
+      "deliveryNotes": "Handle with care - fragile electronics",
+      "driverNotes": "Delivered successfully to customer at front door",
+      "pickupLocation": "Warehouse A - 789 Industrial Blvd",
+      "pickupTime": "2024-01-18T08:00:00Z"
+    },
+    {
+      "id": "ORD-002",
+      "clientId": "client_001",
+      "status": "in_transit",
+      "priority": "express",
+      "createdAt": "2024-01-17T14:30:00Z",
+      "estimatedDelivery": "2024-01-18T12:00:00Z",
+      "assignedDriverId": "driver_001",
+      "senderName": "QuickDocs Ltd",
+      "senderAddress": "789 Office Park, Manhattan, NY 10001",
+      "recipientName": "Sarah Johnson",
+      "recipientAddress": "321 Oak Street, Queens, NY 11375",
+      "recipientPhone": "+1-555-987-6543",
+      "packageType": "Documents",
+      "weight": 0.5,
+      "dimensions": "25cm x 15cm x 2cm",
+      "trackingNumber": "TRK-002-QD-2024",
+      "deliveryNotes": "Business documents - deliver to reception",
+      "pickupLocation": "Main Office - 123 Business Park",
+      "pickupTime": "2024-01-18T09:00:00Z"
+    },
+    {
+      "id": "ORD-003",
+      "clientId": "client_002",
+      "status": "loaded",
+      "priority": "standard",
+      "createdAt": "2024-01-17T09:15:00Z",
+      "estimatedDelivery": "2024-01-18T14:00:00Z",
+      "assignedDriverId": "driver_001",
+      "senderName": "Fashion Hub",
+      "senderAddress": "456 Fashion Ave, Brooklyn, NY 11201",
+      "recipientName": "Michael Brown",
+      "recipientAddress": "789 Pine Road, Manhattan, NY 10014",
+      "recipientPhone": "+1-555-246-8100",
+      "packageType": "Clothing",
+      "weight": 1.2,
+      "dimensions": "40cm x 30cm x 10cm",
+      "trackingNumber": "TRK-003-FH-2024",
+      "deliveryNotes": "Leave with doorman if customer not available",
+      "pickupLocation": "Warehouse B - 456 Storage Way",
+      "pickupTime": "2024-01-18T09:30:00Z"
+    },
+    {
+      "id": "ORD-004",
+      "clientId": "client_002",
+      "status": "pending",
+      "priority": "standard",
+      "createdAt": "2024-01-17T16:45:00Z",
+      "estimatedDelivery": "2024-01-18T16:00:00Z",
+      "assignedDriverId": "driver_002",
+      "senderName": "Fresh Foods Market",
+      "senderAddress": "123 Market Street, Bronx, NY 10451",
+      "recipientName": "Emily Davis",
+      "recipientAddress": "654 Elm Street, Brooklyn, NY 11201",
+      "recipientPhone": "+1-555-135-7924",
+      "packageType": "Food Items",
+      "weight": 3.8,
+      "dimensions": "35cm x 25cm x 20cm",
+      "trackingNumber": "TRK-004-FF-2024",
+      "deliveryNotes": "Perishable items - deliver ASAP",
+      "pickupLocation": "Cold Storage - 789 Refrigerated Dr"
+    },
+    {
+      "id": "ORD-005",
+      "clientId": "client_001",
+      "status": "returned",
+      "priority": "express",
+      "createdAt": "2024-01-16T14:00:00Z",
+      "estimatedDelivery": "2024-01-17T10:00:00Z",
+      "assignedDriverId": "driver_002",
+      "senderName": "BookWorld",
+      "senderAddress": "234 Library Ave, Manhattan, NY 10001",
+      "recipientName": "David Wilson",
+      "recipientAddress": "987 Maple Drive, Queens, NY 11375",
+      "recipientPhone": "+1-555-789-0123",
+      "packageType": "Books",
+      "weight": 2.0,
+      "dimensions": "30cm x 25cm x 8cm",
+      "trackingNumber": "TRK-005-BW-2024",
+      "deliveryNotes": "Educational materials",
+      "driverNotes": "Customer not available after 3 attempts - returned to sender",
+      "pickupLocation": "Library Distribution - 234 Book Ave",
+      "pickupTime": "2024-01-17T08:00:00Z"
+    }
+  ],
+  "driver_routes": [
+    {
+      "id": "RT-2024-001",
+      "driverId": "driver_001",
+      "date": "2024-01-18",
+      "totalDistance": 45.2,
+      "estimatedDuration": 180,
+      "totalStops": 6,
+      "completedStops": 2,
+      "optimizedBy": "system",
+      "lastUpdated": "2024-01-18T08:30:00Z",
+      "stops": [
+        {
+          "id": "stop-1",
+          "orderId": "ORD-001",
+          "type": "pickup",
+          "recipientName": "Warehouse A",
+          "address": "789 Industrial Blvd, Building 3, New York, NY",
+          "phone": "+1-555-789-0123",
+          "estimatedTime": "08:30",
+          "duration": 15,
+          "status": "completed",
+          "packageType": "Electronics",
+          "priority": "urgent",
+          "latitude": 40.7128,
+          "longitude": -74.0060
+        },
+        {
+          "id": "stop-2",
+          "orderId": "ORD-002",
+          "type": "pickup", 
+          "recipientName": "Main Office",
+          "address": "123 Business Park, Suite 100, New York, NY",
+          "phone": "+1-555-456-7890",
+          "estimatedTime": "09:00",
+          "duration": 10,
+          "status": "completed",
+          "packageType": "Documents",
+          "priority": "express",
+          "latitude": 40.7580,
+          "longitude": -73.9855
+        },
+        {
+          "id": "stop-3",
+          "orderId": "ORD-001",
+          "type": "delivery",
+          "recipientName": "John Smith",
+          "address": "456 Home Ave, Brooklyn, NY 11201",
+          "phone": "+1-555-123-4567",
+          "estimatedTime": "10:00",
+          "duration": 10,
+          "status": "pending",
+          "packageType": "Electronics",
+          "priority": "urgent",
+          "notes": "Handle with care - fragile electronics",
+          "latitude": 40.6892,
+          "longitude": -73.9442
+        }
+      ]
+    }
+  ],
+  "driver_stats": [
+    {
+      "driverId": "driver_001",
+      "date": "2024-01-18",
+      "assignedOrders": 8,
+      "completedToday": 5,
+      "pendingPickups": 3,
+      "estimatedDistance": 45.2,
+      "totalDeliveries": 156,
+      "successRate": 96.8,
+      "averageDeliveryTime": 25
+    },
+    {
+      "driverId": "driver_002", 
+      "date": "2024-01-18",
+      "assignedOrders": 6,
+      "completedToday": 3,
+      "pendingPickups": 3,
+      "estimatedDistance": 38.7,
+      "totalDeliveries": 98,
+      "successRate": 94.2,
+      "averageDeliveryTime": 28
     }
   ],
   "driver_locations": [
     {
-      "driverId": "drv_002",
+      "driverId": "driver_001",
+      "lat": 40.7128,
+      "lon": -74.0060,
+      "timestamp": "2024-01-18T10:30:00Z",
+      "address": "456 Home Ave, Brooklyn, NY 11201"
+    },
+    {
+      "driverId": "driver_002",
       "lat": 40.6782,
       "lon": -73.9442, 
-      "timestamp": "2024-01-17T15:45:00Z"
+      "timestamp": "2024-01-18T11:15:00Z",
+      "address": "789 Market Street, Bronx, NY 10451"
+    }
+  ],
+  "delivery_history": [
+    {
+      "id": "DH-001",
+      "orderId": "ORD-001",
+      "driverId": "driver_001",
+      "timestamp": "2024-01-18T15:30:00Z",
+      "status": "delivered",
+      "location": {
+        "lat": 40.6892,
+        "lon": -73.9442
+      },
+      "notes": "Delivered successfully to customer at front door",
+      "signature": "J.Smith",
+      "photo": "delivery_photo_001.jpg"
     }
   ]
 }

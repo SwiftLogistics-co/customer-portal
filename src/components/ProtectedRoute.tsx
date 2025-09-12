@@ -18,7 +18,22 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    // Determine which login page to redirect to based on the current path
+    const isDriverRoute = location.pathname.startsWith('/driver');
+    const loginPath = isDriverRoute ? '/driver/login' : '/login';
+    return <Navigate to={loginPath} state={{ from: location }} replace />;
+  }
+
+  // Role-based route protection
+  const isDriverRoute = location.pathname.startsWith('/driver');
+  const isCustomerRoute = !isDriverRoute && location.pathname !== '/';
+
+  if (isDriverRoute && user.role !== 'driver') {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (isCustomerRoute && user.role !== 'client') {
+    return <Navigate to="/driver/login" replace />;
   }
 
   return <>{children}</>;

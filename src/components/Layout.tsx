@@ -12,7 +12,9 @@ import {
   User, 
   LogOut,
   Menu,
-  X
+  X,
+  Route,
+  Navigation
 } from 'lucide-react';
 import { NotificationCenter } from '@/components/NotificationCenter';
 
@@ -27,15 +29,22 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const navigation = [
+  const navigation = user?.role === 'driver' ? [
+    { name: 'Dashboard', href: '/driver/dashboard', icon: Home },
+    { name: 'My Orders', href: '/driver/orders', icon: Package },
+    { name: 'Route', href: '/driver/route', icon: Route },
+  ] : [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
-    // { name: 'New Order', href: '/orders/new', icon: Plus },
     { name: 'My Orders', href: '/orders', icon: Package },
   ];
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    if (user?.role === 'driver') {
+      navigate('/driver/login');
+    } else {
+      navigate('/login');
+    }
   };
 
   return (
@@ -56,7 +65,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex items-center justify-between h-16 px-6 border-b">
           <div className="flex items-center space-x-2">
             <Truck className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold">SwiftTrack</span>
+            <span className="text-xl font-bold">
+              {user?.role === 'driver' ? 'SwiftTrack Driver' : 'SwiftTrack'}
+            </span>
           </div>
           <Button
             variant="ghost"
@@ -101,7 +112,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
               <div className="text-sm">
                 <p className="font-medium">{user?.name}</p>
-                <p className="text-muted-foreground">{user?.email}</p>
+                <p className="text-muted-foreground capitalize">{user?.role} Portal</p>
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={handleLogout}>
