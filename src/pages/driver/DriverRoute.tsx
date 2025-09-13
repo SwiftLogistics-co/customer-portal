@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { RouteOverview } from '@/components/driver/RouteOverview';
 import { RouteStopList } from '@/components/driver/RouteStopList';
+import { getDriverRoutes, getDriverOrders } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface RouteStop {
   id: string;
@@ -39,118 +41,75 @@ interface RouteInfo {
 const DriverRoute: React.FC = () => {
   const navigate = useNavigate();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { user } = useAuth();
 
-  const { data: routeData, isLoading, refetch } = useQuery<RouteInfo>({
-    queryKey: ['driver-route'],
+  const { data: routeData, isLoading, refetch, error } = useQuery<RouteInfo>({
+    queryKey: ['driver-route', user?.id],
     queryFn: async () => {
-      // Mock data - replace with actual API call
-      return {
-        routeId: 'RT-2024-001',
-        driverId: 'DRV-001',
-        date: '2024-01-18',
-        totalDistance: 45.2,
-        estimatedDuration: 180, // 3 hours
-        totalStops: 6,
-        completedStops: 2,
-        optimizedBy: 'system',
-        lastUpdated: '2024-01-18T08:30:00Z',
-        stops: [
-          {
-            id: 'stop-1',
-            orderId: 'ORD-001',
-            type: 'pickup',
-            recipientName: 'Warehouse A',
-            address: '789 Industrial Blvd, Building 3, New York, NY',
-            phone: '+1 (555) 789-0123',
-            estimatedTime: '08:30',
-            duration: 15,
-            status: 'completed',
-            packageType: 'Electronics',
-            priority: 'urgent',
-            latitude: 40.7128,
-            longitude: -74.0060
-          },
-          {
-            id: 'stop-2',
-            orderId: 'ORD-002',
-            type: 'pickup',
-            recipientName: 'Main Office',
-            address: '123 Business Park, Suite 100, New York, NY',
-            phone: '+1 (555) 456-7890',
-            estimatedTime: '09:00',
-            duration: 10,
-            status: 'completed',
-            packageType: 'Documents',
-            priority: 'express',
-            latitude: 40.7589,
-            longitude: -73.9851
-          },
-          {
-            id: 'stop-3',
-            orderId: 'ORD-001',
-            type: 'delivery',
-            recipientName: 'John Smith',
-            address: '123 Main St, Apt 4B, New York, NY 10001',
-            phone: '+1 (555) 123-4567',
-            estimatedTime: '10:30',
-            duration: 15,
-            status: 'pending',
-            packageType: 'Electronics',
-            priority: 'urgent',
-            notes: 'Fragile - Handle with care. Ring doorbell twice.',
-            latitude: 40.7505,
-            longitude: -73.9934
-          },
-          {
-            id: 'stop-4',
-            orderId: 'ORD-002',
-            type: 'delivery',
-            recipientName: 'Sarah Johnson',
-            address: '456 Oak Ave, Suite 200, New York, NY 10016',
-            phone: '+1 (555) 234-5678',
-            estimatedTime: '11:15',
-            duration: 10,
-            status: 'pending',
-            packageType: 'Documents',
-            priority: 'express',
-            notes: 'Business delivery - Ask for reception desk',
-            latitude: 40.7455,
-            longitude: -73.9803
-          },
-          {
-            id: 'stop-5',
-            orderId: 'ORD-003',
-            type: 'pickup',
-            recipientName: 'Tech Store Inc.',
-            address: '789 Commerce St, New York, NY 10013',
-            phone: '+1 (555) 345-6789',
-            estimatedTime: '12:00',
-            duration: 20,
-            status: 'pending',
-            packageType: 'Electronics',
-            priority: 'standard',
-            latitude: 40.7204,
-            longitude: -74.0014
-          },
-          {
-            id: 'stop-6',
-            orderId: 'ORD-003',
-            type: 'delivery',
-            recipientName: 'Michael Brown',
-            address: '321 Pine Rd, Brooklyn, NY 11201',
-            phone: '+1 (555) 456-7890',
-            estimatedTime: '13:30',
-            duration: 15,
-            status: 'pending',
-            packageType: 'Electronics',
-            priority: 'standard',
-            notes: 'Leave with neighbor if not home',
-            latitude: 40.6892,
-            longitude: -73.9959
-          }
-        ]
-      } as RouteInfo;
-    }
+      if (!user?.id) {
+        throw new Error('Driver ID not found');
+      }
+
+      try {
+        // Fetch route optimization data and driver orders in parallel
+        const [routeResponse, ordersResponse] = await Promise.all([
+          getDriverRoutes(user.id),
+          getDriverOrders(user.id)
+        ]);
+
+        // Transform the API response to match RouteInfo interface
+        const today = new Date().toISOString().split('T')[0];
+      
+      // Create route stops from orders
+      const stops: RouteStop[] = ordersResponse.map((order, index) => {
+        // Determine if this is pickup or delivery based on status and workflow
+        // If order is pending/processing, it needs pickup first, then delivery
+        // If already loaded/delivered/cancelled, it's a delivery stop
+        const isPickupPhase = order.status === 'pending' || order.status === 'processing';
+        
+        return {
+          id: `stop-${order.id}`,
+          orderId: order.id.toString(),
+          type: isPickupPhase ? 'pickup' : 'delivery',
+          recipientName: isPickupPhase ? (order.senderName || 'Pickup Location') : order.recipientName,
+          address: isPickupPhase ? (order.pickupLocation || order.senderAddress || order.address) : order.address,
+          phone: order.recipientPhone || '+1-555-000-0000',
+          estimatedTime: new Date(Date.now() + (index + 1) * 60 * 60 * 1000).toLocaleTimeString('en-US', { 
+            hour12: false, 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          duration: 15, // Default duration
+          status: order.status === 'delivered' ? 'completed' : 
+                  order.status === 'cancelled' ? 'failed' : 'pending',
+          packageType: order.packageType || 'Package',
+          priority: order.priority,
+          notes: order.deliveryNotes || order.driverNotes,
+          latitude: order.coordinate?.lat || 0,
+          longitude: order.coordinate?.lng || 0
+        };
+      });
+
+      const completedStops = stops.filter(stop => stop.status === 'completed').length;
+
+        return {
+          routeId: `RT-${today}-${user.id}`,
+          driverId: user.id.toString(),
+          date: today,
+          totalDistance: routeResponse.optimization_summary.total_distance_km,
+          estimatedDuration: routeResponse.optimization_summary.total_orders * 30, // Estimate 30 min per order
+          totalStops: routeResponse.optimization_summary.total_orders,
+          completedStops,
+          optimizedBy: 'system' as const,
+          lastUpdated: new Date().toISOString(),
+          stops
+        } as RouteInfo;
+      } catch (error) {
+        console.error('Failed to fetch route data:', error);
+        throw error;
+      }
+    },
+    enabled: !!user?.id && user?.role === 'driver'
   });
 
   const handleRefresh = async () => {
@@ -172,6 +131,27 @@ const DriverRoute: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-muted-foreground">Loading route...</div>
+      </div>
+    );
+  }
+
+  if (!user || user.role !== 'driver') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-muted-foreground">Access denied. Driver role required.</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <div className="text-destructive">Failed to load route data</div>
+        <div className="text-sm text-muted-foreground">{error.message}</div>
+        <Button onClick={() => refetch()} variant="outline">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
       </div>
     );
   }
