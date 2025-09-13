@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,15 +44,45 @@ const NewOrder: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Fetch available routes
-  const { data: routes } = useQuery<Route[]>({
-    queryKey: ['routes'],
-    queryFn: async () => {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:8290'}/routes`);
-      if (!response.ok) throw new Error('Failed to fetch routes');
-      return response.json();
+  // Hardcoded routes list
+  const routes: Route[] = [
+    {
+      id: 1,
+      name: "Manhattan Route",
+      description: "Central Manhattan and surrounding areas",
+      active: true
     },
-  });
+    {
+      id: 2,
+      name: "Brooklyn Route", 
+      description: "Brooklyn and nearby neighborhoods",
+      active: true
+    },
+    {
+      id: 3,
+      name: "Queens Route",
+      description: "Queens and eastern areas",
+      active: true
+    },
+    {
+      id: 4,
+      name: "Bronx Route",
+      description: "Bronx and northern areas", 
+      active: true
+    },
+    {
+      id: 5,
+      name: "Staten Island Route",
+      description: "Staten Island and surrounding areas",
+      active: true
+    },
+    {
+      id: 6,
+      name: "Express Route",
+      description: "Priority deliveries across all areas",
+      active: true
+    }
+  ];
 
   const form = useForm<OrderFormData>({
     resolver: zodResolver(orderSchema),
@@ -281,7 +310,7 @@ const NewOrder: React.FC = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {routes?.filter(route => route.active).map((route) => (
+                          {routes.filter(route => route.active).map((route) => (
                             <SelectItem key={route.id} value={route.id.toString()}>
                               {route.name} - {route.description}
                             </SelectItem>
