@@ -6,6 +6,7 @@ import { Package } from 'lucide-react';
 import { DashboardStats } from '@/components/customer/DashboardStats';
 import { QuickTracker } from '@/components/customer/QuickTracker';
 import { RecentActivity } from '@/components/customer/RecentActivity';
+import { getCustomerDashboardStats, getCustomerRecentActivity } from '@/lib/api';
 
 interface DashboardStats {
   activeDeliveries: number;
@@ -17,6 +18,7 @@ interface DashboardStats {
 interface ActivityItem {
   id: string;
   type: 'order_created' | 'order_processing' | 'order_delivered' | 'driver_assigned';
+  trackingNumber: string;
   orderId: string;
   message: string;
   timestamp: string;
@@ -25,54 +27,16 @@ interface ActivityItem {
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
 
-  const { data: stats } = useQuery<DashboardStats>({
-    queryKey: ['dashboard-stats'],
-    queryFn: async () => {
-      // Mock data - replace with actual API call
-      return {
-        activeDeliveries: 12,
-        pendingPickups: 5,
-        completedToday: 23,
-        totalOrders: 156
-      };
-    }
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<DashboardStats>({
+    queryKey: ['customer-dashboard-stats'],
+    queryFn: getCustomerDashboardStats,
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
-  const { data: recentActivity } = useQuery<ActivityItem[]>({
-    queryKey: ['recent-activity'],
-    queryFn: async () => {
-      // Mock data - replace with actual API call
-      return [
-        {
-          id: '1',
-          type: 'order_delivered',
-          orderId: 'ORD-001',
-          message: 'Package delivered to 123 Main St',
-          timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString()
-        },
-        {
-          id: '2',
-          type: 'driver_assigned',
-          orderId: 'ORD-003',
-          message: 'John Smith assigned to delivery',
-          timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString()
-        },
-        {
-          id: '3',
-          type: 'order_processing',
-          orderId: 'ORD-002',
-          message: 'Package is being processed',
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: '4',
-          type: 'order_created',
-          orderId: 'ORD-004',
-          message: 'New order created - Electronics shipment',
-          timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
-        }
-      ];
-    }
+  const { data: recentActivity, isLoading: activityLoading, error: activityError } = useQuery<ActivityItem[]>({
+    queryKey: ['customer-recent-activity'],
+    queryFn: getCustomerRecentActivity,
+    refetchInterval: 60000, // Refetch every minute
   });
 
   return (
@@ -93,8 +57,18 @@ const Dashboard: React.FC = () => {
       </div>
 
       <QuickTracker />
-      <DashboardStats stats={stats} />
-      <RecentActivity activities={recentActivity} />
+      
+      {statsError ? (
+        <div className="text-red-500">Error loading dashboard statistics</div>
+      ) : (
+        <DashboardStats stats={stats} />
+      )}
+      
+      {activityError ? (
+        <div className="text-red-500">Error loading recent activity</div>
+      ) : (
+        <RecentActivity activities={recentActivity} />
+      )}
     </div>
   );
 };

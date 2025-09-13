@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Package, Route } from 'lucide-react';
 import { DriverStats } from '@/components/driver/DriverStats';
 import { AssignedOrdersList } from '@/components/driver/AssignedOrdersList';
+import { getDriverDashboardStats, getDriverOrders } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DriverStats {
   assignedOrders: number;
@@ -26,60 +28,53 @@ interface AssignedOrder {
 
 const DriverDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const { data: stats } = useQuery<DriverStats>({
-    queryKey: ['driver-stats'],
-    queryFn: async () => {
-      // Mock data - replace with actual API call
-      return {
-        assignedOrders: 8,
-        completedToday: 5,
-        pendingPickups: 3,
-        estimatedDistance: 45.2
-      };
-    }
+  // Ensure we have a driver ID
+  const driverId = user?.id;
+
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<DriverStats>({
+    queryKey: ['driver-dashboard-stats', driverId],
+    queryFn: () => getDriverDashboardStats(driverId!),
+    enabled: !!driverId && user?.role === 'driver',
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
-  const { data: todaysOrders } = useQuery<AssignedOrder[]>({
-    queryKey: ['driver-todays-orders'],
-    queryFn: async () => {
-      // Mock data - replace with actual API call
-      return [
-        {
-          id: 'ORD-001',
-          recipientName: 'John Smith',
-          recipientAddress: '123 Main St, New York, NY 10001',
-          status: 'pending',
-          priority: 'urgent',
-          estimatedDelivery: '2024-01-18T10:00:00Z',
-          packageType: 'Electronics',
-          deliveryNotes: 'Fragile - Handle with care'
-        },
-        {
-          id: 'ORD-002',
-          recipientName: 'Sarah Johnson',
-          recipientAddress: '456 Oak Ave, Los Angeles, CA 90210',
-          status: 'loaded',
-          priority: 'express',
-          estimatedDelivery: '2024-01-18T12:00:00Z',
-          packageType: 'Documents'
-        },
-        {
-          id: 'ORD-003',
-          recipientName: 'Michael Brown',
-          recipientAddress: '789 Pine Rd, Chicago, IL 60601',
-          status: 'delivered',
-          priority: 'standard',
-          estimatedDelivery: '2024-01-18T09:00:00Z',
-          packageType: 'Clothing'
-        }
-      ];
+  const { data: todaysOrders, isLoading: ordersLoading, error: ordersError } = useQuery({
+    queryKey: ['driver-todays-orders', driverId],
+    queryFn: () => getDriverOrders(driverId!),
+    enabled: !!driverId && user?.role === 'driver',
+    refetchInterval: 60000, // Refetch every minute
+    select: (orders) => {
+      // Transform the API order data to match the expected interface
+      return orders.map(order => ({
+        id: order.trackingNumber,
+        recipientName: order.recipientName,
+        recipientAddress: order.address,
+        status: order.status,
+        priority: order.priority,
+        estimatedDelivery: order.estimatedDelivery,
+        packageType: order.packageType,
+        deliveryNotes: order.deliveryNotes
+      }));
     }
   });
 
   const handleViewOrder = (orderId: string) => {
     navigate(`/driver/orders/${orderId}`);
   };
+
+  // Show loading state while checking authentication
+  if (!user || user.role !== 'driver') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+          <p className="text-muted-foreground">This page is only accessible to drivers.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -102,8 +97,17 @@ const DriverDashboard: React.FC = () => {
         </div>
       </div>
 
-      <DriverStats stats={stats} />
-      <AssignedOrdersList orders={todaysOrders} onViewOrder={handleViewOrder} />
+      {statsError ? (
+        <div className="text-red-500">Error loading driver statistics</div>
+      ) : (
+        <DriverStats stats={stats} />
+      )}
+      
+      {ordersError ? (
+        <div className="text-red-500">Error loading assigned orders</div>
+      ) : (
+        <AssignedOrdersList orders={todaysOrders || []} onViewOrder={handleViewOrder} />
+      )}
     </div>
   );
 };

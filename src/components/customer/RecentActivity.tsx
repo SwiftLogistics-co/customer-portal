@@ -13,6 +13,7 @@ import { formatDistanceToNow } from 'date-fns';
 interface ActivityItem {
   id: string;
   type: 'order_created' | 'order_processing' | 'order_delivered' | 'driver_assigned';
+  trackingNumber: string;
   orderId: string;
   message: string;
   timestamp: string;
@@ -24,6 +25,7 @@ interface RecentActivityProps {
 
 export const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
   const navigate = useNavigate();
+  console.log("activity:", activities);
 
   const getActivityIcon = (type: ActivityItem['type']) => {
     switch (type) {
@@ -66,7 +68,7 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) =>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="text-xs">
-                    {activity.orderId}
+                    {activity.trackingNumber}
                   </Badge>
                   <span className="text-sm text-muted-foreground">
                     {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}

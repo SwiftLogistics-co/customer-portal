@@ -207,18 +207,154 @@ export const getDriverRoutes = async (driverId: number): Promise<DriverRoute> =>
   return await response.json();
 };
 
+// /**
+//  * Get driver statistics (legacy endpoint)
+//  */
+// export const getDriverStats = async (driverId: number): Promise<DriverStats> => {
+//   const response = await fetch(`${API_BASE_URL}/api/driver/stats/${driverId}`, {
+//     headers: getAuthHeaders(),
+//   });
+
+//   if (!response.ok) {
+//     const error = await response.json();
+//     throw new Error(error.message || 'Failed to fetch driver stats');
+//   }
+
+//   return await response.json();
+// };
+
 /**
- * Get driver statistics (legacy endpoint)
+ * Calculate customer dashboard statistics from orders
  */
-export const getDriverStats = async (driverId: number): Promise<DriverStats> => {
-  const response = await fetch(`${API_BASE_URL}/api/driver/stats/${driverId}`, {
-    headers: getAuthHeaders(),
+export const getCustomerDashboardStats = async (): Promise<{
+  activeDeliveries: number;
+  pendingPickups: number;
+  completedToday: number;
+  totalOrders: number;
+}> => {
+  const orders = await getCustomerOrders();
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(today);
+  todayEnd.setDate(todayEnd.getDate() + 1);
+
+  return {
+    activeDeliveries: orders.filter(order => 
+      ['processing', 'loaded'].includes(order.status)
+    ).length,
+    pendingPickups: orders.filter(order => 
+      order.status === 'pending'
+    ).length,
+    completedToday: orders.filter(order => 
+      order.status === 'delivered' && 
+      order.actualDelivery &&
+      new Date(order.actualDelivery) >= today && 
+      new Date(order.actualDelivery) < todayEnd
+    ).length,
+    totalOrders: orders.length
+  };
+};
+
+/**
+ * Get recent activity from customer orders
+ */
+export const getCustomerRecentActivity = async (): Promise<Array<{
+  id: string;
+  type: 'order_created' | 'order_processing' | 'order_delivered' | 'driver_assigned';
+  trackingNumber: string;
+  orderId: string;
+  message: string;
+  timestamp: string;
+}>> => {
+  const orders = await getCustomerOrders();
+  
+  const activities = [];
+  
+  // Add activities for each order based on its current status and timestamps
+  orders.forEach(order => {
+    // Order created activity
+    activities.push({
+      id: `created-${order.id}`,
+      type: 'order_created' as const,
+      trackingNumber: order.trackingNumber,
+      orderId: order.id,
+      message: `New order created - ${order.packageType}`,
+      timestamp: order.created_at
+    });
+    
+    // Driver assigned activity (if driver is assigned)
+    if (order.assignedDriverId) {
+      activities.push({
+        id: `assigned-${order.id}`,
+        type: 'driver_assigned' as const,
+        trackingNumber: order.trackingNumber,
+        orderId: order.id,
+        message: `Driver assigned to delivery`,
+        timestamp: order.created_at // Use creation time as we don't have assignment time
+      });
+    }
+    
+    // Processing activity (if not pending)
+    if (order.status !== 'pending') {
+      activities.push({
+        id: `processing-${order.id}`,
+        type: 'order_processing' as const,
+        trackingNumber: order.trackingNumber,
+        orderId: order.id,
+        message: `Package is being processed`,
+        timestamp: order.created_at
+      });
+    }
+    
+    // Delivered activity (if delivered)
+    if (order.status === 'delivered' && order.actualDelivery) {
+      activities.push({
+        id: `delivered-${order.id}`,
+        type: 'order_delivered' as const,
+        trackingNumber: order.trackingNumber,
+        orderId: order.id,
+        message: `Package delivered to ${order.address}`,
+        timestamp: order.actualDelivery
+      });
+    }
   });
+  
+  // Sort by timestamp (most recent first) and take the latest 10
+  return activities
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 10);
+};
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to fetch driver stats');
-  }
+/**
+ * Calculate driver dashboard statistics from assigned orders
+ */
+export const getDriverDashboardStats = async (driverId: number): Promise<{
+  assignedOrders: number;
+  completedToday: number;
+  pendingPickups: number;
+  estimatedDistance: number;
+}> => {
+  const orders = await getDriverOrders(driverId);
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(today);
+  todayEnd.setDate(todayEnd.getDate() + 1);
 
-  return await response.json();
+  return {
+    assignedOrders: orders.filter(order => 
+      ['pending', 'processing', 'loaded'].includes(order.status)
+    ).length,
+    completedToday: orders.filter(order => 
+      order.status === 'delivered' && 
+      order.actualDelivery &&
+      new Date(order.actualDelivery) >= today && 
+      new Date(order.actualDelivery) < todayEnd
+    ).length,
+    pendingPickups: orders.filter(order => 
+      order.status === 'pending'
+    ).length,
+    estimatedDistance: orders.length * 5.2 // Rough estimate: 5.2km per delivery
+  };
 };
