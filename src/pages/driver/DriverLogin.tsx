@@ -28,6 +28,12 @@ const DriverLogin: React.FC = () => {
     setIsLoading(true);
 
     const success = await login(username, password, 'driver');
+    if (success && user) {
+      const updatedUser = { ...user, role: 'driver' };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      window.location.href = '/driver/dashboard';
+      return;
+    }
     if (!success) {
       setError('Invalid username or password');
     }
