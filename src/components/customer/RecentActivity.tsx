@@ -12,7 +12,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 interface ActivityItem {
   id: string;
-  type: 'order_created' | 'order_picked_up' | 'order_delivered' | 'driver_assigned';
+  type: 'order_created' | 'order_processing' | 'order_delivered' | 'driver_assigned';
   orderId: string;
   message: string;
   timestamp: string;
@@ -29,7 +29,7 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) =>
     switch (type) {
       case 'order_created':
         return <Package className="h-4 w-4" />;
-      case 'order_picked_up':
+      case 'order_processing':
         return <Truck className="h-4 w-4" />;
       case 'order_delivered':
         return <MapPin className="h-4 w-4" />;
@@ -44,7 +44,7 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) =>
         return 'text-green-500 bg-green-50 dark:bg-green-900/20';
       case 'order_created':
         return 'text-blue-500 bg-blue-50 dark:bg-blue-900/20';
-      case 'order_picked_up':
+      case 'order_processing':
         return 'text-orange-500 bg-orange-50 dark:bg-orange-900/20';
       case 'driver_assigned':
         return 'text-purple-500 bg-purple-50 dark:bg-purple-900/20';

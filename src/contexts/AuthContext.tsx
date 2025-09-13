@@ -1,11 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'client' | 'driver';
-}
+import { login as apiLogin, User } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
@@ -40,23 +34,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string, userType: 'customer' | 'driver' = 'customer'): Promise<boolean> => {
     try {
-      const endpoint = userType === 'driver' ? '/driver_login/' : '/customer_login/';
-      const response = await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:8290'}${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('accessToken', data.accessToken);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setUser(data.user);
-        return true;
-      }
-      return false;
+      const data = await apiLogin(username, password);
+      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setUser(data.user);
+      return true;
     } catch (error) {
       console.error('Login error:', error);
       return false;

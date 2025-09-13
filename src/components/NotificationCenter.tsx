@@ -8,7 +8,7 @@ import { Package, Truck, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 
 interface Notification {
   id: string;
-  type: 'order_created' | 'order_picked_up' | 'order_delivered' | 'driver_assigned' | 'order_delayed';
+  type: 'order_created' | 'order_processing' | 'order_delivered' | 'driver_assigned' | 'order_delayed';
   title: string;
   message: string;
   timestamp: string;
@@ -52,9 +52,9 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, 
         },
         {
           id: '3',
-          type: 'order_picked_up',
-          title: 'Package Picked Up',
-          message: 'Your order #ORD-002 has been picked up and is on the way',
+          type: 'order_processing',
+          title: 'Package Processing',
+          message: 'Your order #ORD-002 is being processed and will be shipped soon',
           timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), // 4 hours ago
           read: true,
           orderId: 'ORD-002'
@@ -87,7 +87,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, 
     switch (type) {
       case 'order_created':
         return <Package className="h-4 w-4" />;
-      case 'order_picked_up':
+      case 'order_processing':
         return <Truck className="h-4 w-4" />;
       case 'order_delivered':
         return <CheckCircle className="h-4 w-4" />;
@@ -106,7 +106,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, 
         return 'text-green-500';
       case 'order_delayed':
         return 'text-red-500';
-      case 'order_picked_up':
+      case 'order_processing':
       case 'driver_assigned':
         return 'text-blue-500';
       default:

@@ -4,23 +4,11 @@ import { Button } from '@/components/ui/button';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Eye } from 'lucide-react';
 import { format } from 'date-fns';
-
-interface Order {
-  id: string;
-  recipientName: string;
-  recipientAddress: string;
-  status: 'pending' | 'picked_up' | 'in_transit' | 'delivered' | 'failed';
-  priority: 'standard' | 'express' | 'urgent';
-  createdAt: string;
-  estimatedDelivery: string;
-  trackingNumber: string;
-  packageType: string;
-  weight: number;
-}
+import { Order } from '@/lib/api';
 
 interface OrderRowProps {
   order: Order;
-  onView: (orderId: string) => void;
+  onView: (orderId: number) => void;
 }
 
 export const OrderRow: React.FC<OrderRowProps> = ({ order, onView }) => {
@@ -28,14 +16,16 @@ export const OrderRow: React.FC<OrderRowProps> = ({ order, onView }) => {
     switch (status) {
       case 'delivered':
         return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-      case 'in_transit':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
-      case 'picked_up':
+      case 'loaded':
         return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400';
+      case 'processing':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
-      case 'failed':
+      case 'cancelled':
         return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
     }
   };
 
@@ -56,7 +46,7 @@ export const OrderRow: React.FC<OrderRowProps> = ({ order, onView }) => {
       <TableCell>
         <div>
           <div className="font-medium">{order.recipientName}</div>
-          <div className="text-sm text-muted-foreground">{order.recipientAddress}</div>
+          <div className="text-sm text-muted-foreground">{order.address}</div>
         </div>
       </TableCell>
       <TableCell>
@@ -69,7 +59,7 @@ export const OrderRow: React.FC<OrderRowProps> = ({ order, onView }) => {
           {order.priority}
         </Badge>
       </TableCell>
-      <TableCell>{format(new Date(order.createdAt), 'MMM dd, yyyy')}</TableCell>
+      <TableCell>{format(new Date(order.created_at), 'MMM dd, yyyy')}</TableCell>
       <TableCell>{format(new Date(order.estimatedDelivery), 'MMM dd, yyyy')}</TableCell>
       <TableCell>{order.trackingNumber}</TableCell>
       <TableCell>

@@ -135,7 +135,7 @@
       "client_id": 2,
       "product": "Clothing Package",
       "quantity": 3,
-      "status": "loaded",
+      "status": "pending",
       "priority": "standard",
       "created_at": "2024-01-17T09:15:00Z",
       "estimatedDelivery": "2024-01-18T14:00:00Z",
@@ -156,7 +156,8 @@
       "trackingNumber": "TRK-003-FH-2024",
       "deliveryNotes": "Leave with doorman if customer not available",
       "pickupLocation": "Warehouse B - 456 Storage Way",
-      "pickupTime": "2024-01-18T09:30:00Z"
+      "pickupTime": "2024-01-18T09:30:00Z",
+      "actualDelivery": "2025-09-13T09:21:44.118Z"
     },
     {
       "id": 4,
@@ -190,7 +191,7 @@
       "client_id": 1,
       "product": "Books",
       "quantity": 5,
-      "status": "returned",
+      "status": "pending",
       "priority": "express",
       "created_at": "2024-01-16T14:00:00Z",
       "estimatedDelivery": "2024-01-17T10:00:00Z",
@@ -238,6 +239,33 @@
       "weight": 1,
       "dimensions": "20cm x 20cm x 20cm",
       "trackingNumber": "TRK-006-1757716474281",
+      "deliveryNotes": "",
+      "pickupLocation": "Main Warehouse"
+    },
+    {
+      "id": 7,
+      "client_id": 1,
+      "product": "touch",
+      "quantity": 5,
+      "status": "pending",
+      "address": "matara st 23",
+      "coordinate": {
+        "lat": 2.1233,
+        "lng": 1.2343
+      },
+      "route_id": 2,
+      "created_at": "2025-09-13T08:15:32.654Z",
+      "priority": "standard",
+      "assignedDriverId": null,
+      "estimatedDelivery": "2025-09-14T08:15:32.654Z",
+      "senderName": "John Client",
+      "senderAddress": "matara st 23",
+      "recipientName": "John Client",
+      "recipientPhone": "+1-555-000-0000",
+      "packageType": "touch",
+      "weight": 1,
+      "dimensions": "20cm x 20cm x 20cm",
+      "trackingNumber": "TRK-007-1757751332654",
       "deliveryNotes": "",
       "pickupLocation": "Main Warehouse"
     }
@@ -425,12 +453,12 @@
       "orderId": 5,
       "driverId": 4,
       "timestamp": "2024-01-17T14:20:00Z",
-      "status": "returned",
+      "status": "cancelled",
       "location": {
         "lat": 40.7282,
         "lon": -73.7949
       },
-      "notes": "Customer not available after 3 attempts - returned to sender",
+      "notes": "Customer not available after 3 attempts - delivery cancelled",
       "signature": null,
       "photo": null
     }

@@ -15,7 +15,7 @@ interface AssignedOrder {
   id: string;
   recipientName: string;
   recipientAddress: string;
-  status: 'pending' | 'loaded' | 'in_transit' | 'delivered' | 'returned';
+  status: 'pending' | 'processing' | 'loaded' | 'delivered' | 'cancelled';
   priority: 'standard' | 'express' | 'urgent';
   estimatedDelivery: string;
   packageType: string;
@@ -32,13 +32,13 @@ export const OrderStatusCard: React.FC<OrderStatusCardProps> = ({ order, onView 
     switch (status) {
       case 'pending':
         return <Clock className="h-4 w-4" />;
-      case 'loaded':
+      case 'processing':
         return <Truck className="h-4 w-4" />;
-      case 'in_transit':
+      case 'loaded':
         return <Navigation className="h-4 w-4" />;
       case 'delivered':
         return <CheckCircle className="h-4 w-4" />;
-      case 'returned':
+      case 'cancelled':
         return <AlertCircle className="h-4 w-4" />;
     }
   };
@@ -47,13 +47,13 @@ export const OrderStatusCard: React.FC<OrderStatusCardProps> = ({ order, onView 
     switch (status) {
       case 'pending':
         return 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20';
+      case 'processing':
+        return 'text-purple-600 bg-purple-50 dark:bg-purple-900/20';
       case 'loaded':
         return 'text-blue-600 bg-blue-50 dark:bg-blue-900/20';
-      case 'in_transit':
-        return 'text-purple-600 bg-purple-50 dark:bg-purple-900/20';
       case 'delivered':
         return 'text-green-600 bg-green-50 dark:bg-green-900/20';
-      case 'returned':
+      case 'cancelled':
         return 'text-red-600 bg-red-50 dark:bg-red-900/20';
     }
   };

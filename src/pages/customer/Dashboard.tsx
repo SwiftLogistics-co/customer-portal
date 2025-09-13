@@ -16,7 +16,7 @@ interface DashboardStats {
 
 interface ActivityItem {
   id: string;
-  type: 'order_created' | 'order_picked_up' | 'order_delivered' | 'driver_assigned';
+  type: 'order_created' | 'order_processing' | 'order_delivered' | 'driver_assigned';
   orderId: string;
   message: string;
   timestamp: string;
@@ -59,9 +59,9 @@ const Dashboard: React.FC = () => {
         },
         {
           id: '3',
-          type: 'order_picked_up',
+          type: 'order_processing',
           orderId: 'ORD-002',
-          message: 'Package picked up from sender',
+          message: 'Package is being processed',
           timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
         },
         {

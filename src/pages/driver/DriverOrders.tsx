@@ -6,20 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Package } from 'lucide-react';
 import { DriverOrderFilters } from '@/components/driver/DriverOrderFilters';
 import { DriverOrderTable } from '@/components/driver/DriverOrderTable';
-
-interface DriverOrder {
-  id: string;
-  recipientName: string;
-  recipientAddress: string;
-  status: 'pending' | 'loaded' | 'in_transit' | 'delivered' | 'returned';
-  priority: 'standard' | 'express' | 'urgent';
-  assignedAt: string;
-  estimatedDelivery: string;
-  packageType: string;
-  weight: number;
-  deliveryNotes?: string;
-  pickupLocation: string;
-}
+import { getDriverOrders, Order } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 const DriverOrders: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,6 +15,7 @@ const DriverOrders: React.FC = () => {
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Initialize filters from URL params
   useEffect(() => {
@@ -48,99 +37,39 @@ const DriverOrders: React.FC = () => {
     setSearchParams(params);
   }, [statusFilter, priorityFilter, searchQuery, setSearchParams]);
   
-  const { data: orders, isLoading } = useQuery<DriverOrder[]>({
-    queryKey: ['driver-orders', searchQuery, statusFilter, priorityFilter],
-    queryFn: async () => {
-      // Mock data - replace with actual API call
-      const mockOrders: DriverOrder[] = [
-        {
-          id: 'ORD-001',
-          recipientName: 'John Smith',
-          recipientAddress: '123 Main St, New York, NY 10001',
-          status: 'pending',
-          priority: 'urgent',
-          assignedAt: '2024-01-17T08:00:00Z',
-          estimatedDelivery: '2024-01-18T10:00:00Z',
-          packageType: 'Electronics',
-          weight: 2.5,
-          deliveryNotes: 'Fragile - Handle with care. Customer prefers morning delivery.',
-          pickupLocation: 'Warehouse A - 789 Industrial Blvd'
-        },
-        {
-          id: 'ORD-002',
-          recipientName: 'Sarah Johnson',
-          recipientAddress: '456 Oak Ave, Los Angeles, CA 90210',
-          status: 'loaded',
-          priority: 'express',
-          assignedAt: '2024-01-17T09:30:00Z',
-          estimatedDelivery: '2024-01-18T12:00:00Z',
-          packageType: 'Documents',
-          weight: 0.5,
-          pickupLocation: 'Main Office - 123 Business Park'
-        },
-        {
-          id: 'ORD-003',
-          recipientName: 'Michael Brown',
-          recipientAddress: '789 Pine Rd, Chicago, IL 60601',
-          status: 'in_transit',
-          priority: 'standard',
-          assignedAt: '2024-01-17T07:15:00Z',
-          estimatedDelivery: '2024-01-18T14:00:00Z',
-          packageType: 'Clothing',
-          weight: 1.2,
-          pickupLocation: 'Distribution Center - 456 Commerce St'
-        },
-        {
-          id: 'ORD-004',
-          recipientName: 'Emily Davis',
-          recipientAddress: '321 Elm St, Houston, TX 77001',
-          status: 'delivered',
-          priority: 'standard',
-          assignedAt: '2024-01-16T10:00:00Z',
-          estimatedDelivery: '2024-01-17T16:00:00Z',
-          packageType: 'Food Items',
-          weight: 3.8,
-          pickupLocation: 'Cold Storage - 789 Freezer Way'
-        },
-        {
-          id: 'ORD-005',
-          recipientName: 'David Wilson',
-          recipientAddress: '654 Maple Dr, Phoenix, AZ 85001',
-          status: 'returned',
-          priority: 'express',
-          assignedAt: '2024-01-16T11:20:00Z',
-          estimatedDelivery: '2024-01-17T18:00:00Z',
-          packageType: 'Home & Garden',
-          weight: 5.2,
-          deliveryNotes: 'Customer not available for multiple delivery attempts',
-          pickupLocation: 'Garden Center - 321 Plant Ave'
-        }
-      ];
-      
-      // Apply filters
-      let filtered = mockOrders;
-      
-      if (searchQuery) {
-        filtered = filtered.filter(order => 
-          order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.recipientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.recipientAddress.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-      }
-
-      if (statusFilter !== 'all') {
-        filtered = filtered.filter(order => order.status === statusFilter);
-      }
-
-      if (priorityFilter !== 'all') {
-        filtered = filtered.filter(order => order.priority === priorityFilter);
-      }
-
-      return filtered;
-    }
+  const { data: allOrders = [], isLoading, error } = useQuery({
+    queryKey: ['driver-orders', user?.id, statusFilter],
+    queryFn: () => getDriverOrders(user?.id || 1, statusFilter === 'all' ? undefined : statusFilter as any),
+    enabled: !!user?.id,
   });
 
-  const handleViewOrder = (orderId: string) => {
+  // Filter and map orders to expected format
+  const orders = React.useMemo(() => {
+    return allOrders
+      .filter(order => {
+        const matchesSearch = 
+          order.id.toString().includes(searchQuery.toLowerCase()) ||
+          order.recipientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          order.address.toLowerCase().includes(searchQuery.toLowerCase());
+
+        const matchesPriority = priorityFilter === 'all' || order.priority === priorityFilter;
+
+        return matchesSearch && matchesPriority;
+      })
+      .map(order => ({
+        id: order.id.toString(),
+        recipientName: order.recipientName,
+        recipientAddress: order.address,
+        status: order.status as 'pending' | 'processing' | 'loaded' | 'delivered' | 'cancelled',
+        priority: order.priority,
+        assignedAt: order.created_at,
+        estimatedDelivery: order.estimatedDelivery,
+        packageType: order.packageType,
+        weight: order.weight,
+        deliveryNotes: order.deliveryNotes,
+        pickupLocation: order.pickupLocation || 'Warehouse'
+      }));
+  }, [allOrders, searchQuery, priorityFilter]);  const handleViewOrder = (orderId: string) => {
     navigate(`/driver/orders/${orderId}`);
   };
 

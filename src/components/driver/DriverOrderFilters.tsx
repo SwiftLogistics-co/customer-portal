@@ -43,10 +43,10 @@ export const DriverOrderFilters: React.FC<DriverOrderFiltersProps> = ({
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="processing">Processing</SelectItem>
             <SelectItem value="loaded">Loaded</SelectItem>
-            <SelectItem value="in_transit">In Transit</SelectItem>
             <SelectItem value="delivered">Delivered</SelectItem>
-            <SelectItem value="returned">Returned</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
 

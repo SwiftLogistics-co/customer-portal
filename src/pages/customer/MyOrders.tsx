@@ -8,115 +8,35 @@ import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import { OrderFilters } from '@/components/customer/OrderFilters';
 import { OrderTable } from '@/components/customer/OrderTable';
-
-interface Order {
-  id: string;
-  recipientName: string;
-  recipientAddress: string;
-  status: 'pending' | 'picked_up' | 'in_transit' | 'delivered' | 'failed';
-  priority: 'standard' | 'express' | 'urgent';
-  createdAt: string;
-  estimatedDelivery: string;
-  trackingNumber: string;
-  packageType: string;
-  weight: number;
-}
+import { getCustomerOrders, Order } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MyOrders: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   const { data: orders, isLoading } = useQuery<Order[]>({
-    queryKey: ['orders', searchQuery, statusFilter, priorityFilter],
-    queryFn: async () => {
-      // Mock data - replace with actual API call
-      const mockOrders: Order[] = [
-        {
-          id: 'ORD-001',
-          recipientName: 'John Smith',
-          recipientAddress: '123 Main St, New York, NY 10001',
-          status: 'delivered',
-          priority: 'standard',
-          createdAt: '2024-01-15T10:00:00Z',
-          estimatedDelivery: '2024-01-18T16:00:00Z',
-          trackingNumber: 'TRK-001-ABC',
-          packageType: 'Electronics',
-          weight: 2.5
-        },
-        {
-          id: 'ORD-002',
-          recipientName: 'Sarah Johnson',
-          recipientAddress: '456 Oak Ave, Los Angeles, CA 90210',
-          status: 'in_transit',
-          priority: 'express',
-          createdAt: '2024-01-16T14:30:00Z',
-          estimatedDelivery: '2024-01-17T12:00:00Z',
-          trackingNumber: 'TRK-002-DEF',
-          packageType: 'Documents',
-          weight: 0.5
-        },
-        {
-          id: 'ORD-003',
-          recipientName: 'Michael Brown',
-          recipientAddress: '789 Pine Rd, Chicago, IL 60601',
-          status: 'picked_up',
-          priority: 'urgent',
-          createdAt: '2024-01-17T09:15:00Z',
-          estimatedDelivery: '2024-01-17T18:00:00Z',
-          trackingNumber: 'TRK-003-GHI',
-          packageType: 'Clothing',
-          weight: 1.2
-        },
-        {
-          id: 'ORD-004',
-          recipientName: 'Emily Davis',
-          recipientAddress: '321 Elm St, Houston, TX 77001',
-          status: 'pending',
-          priority: 'standard',
-          createdAt: '2024-01-17T16:45:00Z',
-          estimatedDelivery: '2024-01-20T14:00:00Z',
-          trackingNumber: 'TRK-004-JKL',
-          packageType: 'Food Items',
-          weight: 3.8
-        },
-        {
-          id: 'ORD-005',
-          recipientName: 'David Wilson',
-          recipientAddress: '654 Maple Dr, Phoenix, AZ 85001',
-          status: 'failed',
-          priority: 'express',
-          createdAt: '2024-01-16T11:20:00Z',
-          estimatedDelivery: '2024-01-18T10:00:00Z',
-          trackingNumber: 'TRK-005-MNO',
-          packageType: 'Home & Garden',
-          weight: 5.2
-        }
-      ];
-      
-      // Apply filters
-      let filtered = mockOrders;
-      
-      if (searchQuery) {
-        filtered = filtered.filter(order => 
-          order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.recipientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.trackingNumber.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-      }
-
-      if (statusFilter !== 'all') {
-        filtered = filtered.filter(order => order.status === statusFilter);
-      }
-
-      if (priorityFilter !== 'all') {
-        filtered = filtered.filter(order => order.priority === priorityFilter);
-      }
-
-      return filtered;
-    }
+    queryKey: ['orders', user?.id],
+    queryFn: getCustomerOrders,
+    enabled: !!user?.id,
   });
+
+  // Apply client-side filtering
+  const filteredOrders = orders?.filter(order => {
+    const matchesSearch = !searchQuery || 
+      order.id.toString().includes(searchQuery.toLowerCase()) ||
+      order.recipientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.trackingNumber.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+    const matchesPriority = priorityFilter === 'all' || order.priority === priorityFilter;
+    
+    return matchesSearch && matchesStatus && matchesPriority;
+  }) || [];
 
   const handleExport = () => {
     if (!orders || orders.length === 0) {
@@ -132,12 +52,12 @@ const MyOrders: React.FC = () => {
     const headers = ['Order ID', 'Recipient', 'Status', 'Priority', 'Created', 'Est. Delivery', 'Tracking', 'Package Type', 'Weight'];
     const csvContent = [
       headers.join(','),
-      ...orders.map(order => [
-        order.id,
+      ...filteredOrders.map(order => [
+        order.id.toString(),
         `"${order.recipientName}"`,
         order.status,
         order.priority,
-        format(new Date(order.createdAt), 'yyyy-MM-dd'),
+        format(new Date(order.created_at), 'yyyy-MM-dd'),
         format(new Date(order.estimatedDelivery), 'yyyy-MM-dd'),
         order.trackingNumber,
         `"${order.packageType}"`,
@@ -160,7 +80,7 @@ const MyOrders: React.FC = () => {
     });
   };
 
-  const handleViewOrder = (orderId: string) => {
+  const handleViewOrder = (orderId: number) => {
     navigate(`/orders/${orderId}`);
   };
 
@@ -201,7 +121,7 @@ const MyOrders: React.FC = () => {
           />
           
           <OrderTable
-            orders={orders || []}
+            orders={filteredOrders}
             onViewOrder={handleViewOrder}
             isLoading={isLoading}
           />
@@ -211,4 +131,5 @@ const MyOrders: React.FC = () => {
   );
 };
 
+export { MyOrders };
 export default MyOrders;

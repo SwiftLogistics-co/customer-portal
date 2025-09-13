@@ -6,7 +6,7 @@ interface DriverOrder {
   id: string;
   recipientName: string;
   recipientAddress: string;
-  status: 'pending' | 'loaded' | 'in_transit' | 'delivered' | 'returned';
+  status: 'pending' | 'processing' | 'loaded' | 'delivered' | 'cancelled';
   priority: 'standard' | 'express' | 'urgent';
   assignedAt: string;
   estimatedDelivery: string;

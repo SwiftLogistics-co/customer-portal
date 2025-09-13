@@ -1,23 +1,11 @@
 import React from 'react';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { OrderRow } from './OrderRow';
-
-interface Order {
-  id: string;
-  recipientName: string;
-  recipientAddress: string;
-  status: 'pending' | 'picked_up' | 'in_transit' | 'delivered' | 'failed';
-  priority: 'standard' | 'express' | 'urgent';
-  createdAt: string;
-  estimatedDelivery: string;
-  trackingNumber: string;
-  packageType: string;
-  weight: number;
-}
+import { Order } from '@/lib/api';
 
 interface OrderTableProps {
   orders: Order[];
-  onViewOrder: (orderId: string) => void;
+  onViewOrder: (orderId: number) => void;
   isLoading?: boolean;
 }
 

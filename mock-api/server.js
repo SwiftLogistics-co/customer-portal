@@ -275,99 +275,6 @@ server.get('/ros/driver/routes/:driverId', verifyToken, (req, res) => {
   });
 });
 
-// Legacy endpoints for backward compatibility
-server.post('/customer_login', (req, res) => {
-  const { username, password } = req.body;
-  const db = getDb();
-  
-  const user = db.users.find(u => u.username === username && u.password === password && u.role === 'customer');
-  
-  if (user) {
-    const { password: _, ...userWithoutPassword } = user;
-    res.json({
-      accessToken: jwt.sign(userWithoutPassword, JWT_SECRET, { expiresIn: '24h' }),
-      user: userWithoutPassword
-    });
-  } else {
-    res.status(401).json({ error: 'Invalid credentials' });
-  }
-});
-
-server.post('/driver_login', (req, res) => {
-  const { username, password } = req.body;
-  const db = getDb();
-  
-  const user = db.users.find(u => u.username === username && u.password === password && u.role === 'driver');
-  
-  if (user) {
-    const { password: _, ...userWithoutPassword } = user;
-    res.json({
-      accessToken: jwt.sign(userWithoutPassword, JWT_SECRET, { expiresIn: '24h' }),
-      user: userWithoutPassword
-    });
-  } else {
-    res.status(401).json({ error: 'Invalid credentials' });
-  }
-});
-
-// Driver-specific API endpoints (legacy)
-server.get('/api/driver/stats/:driverId', (req, res) => {
-  const { driverId } = req.params;
-  const db = getDb();
-  
-  const stats = db.driver_stats.find(s => s.driverId === parseInt(driverId));
-  if (stats) {
-    res.json(stats);
-  } else {
-    res.status(404).json({ error: 'Driver stats not found' });
-  }
-});
-
-server.get('/api/driver/route/:driverId', (req, res) => {
-  const { driverId } = req.params;
-  const db = getDb();
-  
-  const route = db.driver_routes.find(r => r.driverId === parseInt(driverId));
-  if (route) {
-    res.json(route);
-  } else {
-    res.status(404).json({ error: 'Route not found' });
-  }
-});
-
-server.get('/api/driver/orders/:driverId', (req, res) => {
-  const { driverId } = req.params;
-  const { status, priority } = req.query;
-  const db = getDb();
-  
-  let orders = db.orders.filter(o => o.assignedDriverId === parseInt(driverId));
-  
-  if (status && status !== 'all') {
-    orders = orders.filter(o => o.status === status);
-  }
-  
-  if (priority && priority !== 'all') {
-    orders = orders.filter(o => o.priority === priority);
-  }
-  
-  res.json(orders);
-});
-
-server.patch('/api/driver/orders/:orderId', (req, res) => {
-  const { orderId } = req.params;
-  const updates = req.body;
-  const db = getDb();
-  
-  const orderIndex = db.orders.findIndex(o => o.id === parseInt(orderId));
-  if (orderIndex !== -1) {
-    db.orders[orderIndex] = { ...db.orders[orderIndex], ...updates };
-    writeDb(db);
-    res.json(db.orders[orderIndex]);
-  } else {
-    res.status(404).json({ error: 'Order not found' });
-  }
-});
-
 // Use default json-server router for other endpoints
 server.use(router);
 
@@ -381,5 +288,4 @@ server.listen(PORT, () => {
   console.log(`- PUT /wms/updateOrderStatus/{orderId}/{status}`);
   console.log(`- GET /cms/getOrderByDriverAndStatus`);
   console.log(`- GET /ros/driver/routes/{driverId}`);
-  console.log(`- Legacy endpoints: /customer_login, /driver_login, /api/driver/*`);
 });

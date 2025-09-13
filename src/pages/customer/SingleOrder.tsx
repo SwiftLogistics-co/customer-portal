@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import { getCustomerOrders, Order as ApiOrder } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Package, 
   MapPin, 
@@ -25,34 +27,15 @@ import { toast } from '@/hooks/use-toast';
 import MapComponent from '@/components/MapComponent';
 import { usePolling } from '@/hooks/usePolling';
 
-interface Order {
-  id: string;
-  senderName: string;
-  senderAddress: string;
-  senderPhone: string;
-  recipientName: string;
-  recipientAddress: string;
-  recipientPhone: string;
-  status: 'pending' | 'picked_up' | 'in_transit' | 'delivered' | 'failed';
-  priority: 'standard' | 'express' | 'urgent';
-  createdAt: string;
-  estimatedDelivery: string;
-  assignedDriverId?: string;
-  packageType: string;
-  weight: number;
-  dimensions: { length: number; width: number; height: number };
-  specialInstructions?: string;
-  route?: {
-    polyline: string;
-    coordinates: [number, number][];
-  };
+// Extended interface for detailed order view with timeline and proofs
+interface OrderDetails extends ApiOrder {
   timeline: TimelineEvent[];
   proofs: Proof[];
 }
 
 interface TimelineEvent {
   id: string;
-  type: 'created' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'failed';
+  type: 'created' | 'assigned' | 'processing' | 'loaded' | 'delivered' | 'cancelled';
   message: string;
   timestamp: string;
   location?: string;
@@ -69,95 +52,115 @@ interface Proof {
 const SingleOrder: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [uploadingProof, setUploadingProof] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const { data: order, isLoading } = useQuery<Order>({
+  const { data: order, isLoading, error } = useQuery<OrderDetails>({
     queryKey: ['order', orderId],
     queryFn: async () => {
-      if (!orderId) throw new Error('Order ID is required');
+      if (!orderId || !user) throw new Error('Order ID and user authentication required');
       
-      // Mock data - replace with actual API call
-      const mockOrder: Order = {
-        id: orderId,
-        senderName: 'John Doe',
-        senderAddress: '123 Business St, New York, NY 10001',
-        senderPhone: '+1 (555) 123-4567',
-        recipientName: 'Jane Smith',
-        recipientAddress: '456 Home Ave, Brooklyn, NY 11201',
-        recipientPhone: '+1 (555) 987-6543',
-        status: 'in_transit',
-        priority: 'express',
-        createdAt: '2024-01-17T10:00:00Z',
-        estimatedDelivery: '2024-01-18T16:00:00Z',
-        assignedDriverId: 'drv_002',
-        packageType: 'Electronics',
-        weight: 2.5,
-        dimensions: { length: 30, width: 20, height: 15 },
-        specialInstructions: 'Handle with care - fragile electronics inside',
-        route: {
-          polyline: 'encoded_polyline_here',
-          coordinates: [
-            [-74.0059, 40.7128], // Start (NYC)
-            [-73.9442, 40.6782], // End (Brooklyn)
-          ]
-        },
-        timeline: [
-          {
-            id: '1',
-            type: 'created',
-            message: 'Order created and payment confirmed',
-            timestamp: '2024-01-17T10:00:00Z',
-            location: 'New York, NY'
-          },
-          {
-            id: '2',
-            type: 'assigned',
-            message: 'Driver John Smith assigned to delivery',
-            timestamp: '2024-01-17T11:30:00Z',
-            location: 'Distribution Center'
-          },
-          {
-            id: '3',
-            type: 'picked_up',
-            message: 'Package picked up from sender',
-            timestamp: '2024-01-17T14:15:00Z',
-            location: '123 Business St, New York, NY'
-          },
-          {
-            id: '4',
-            type: 'in_transit',
-            message: 'Package is on the way to destination',
-            timestamp: '2024-01-17T15:45:00Z',
-            location: 'Queens, NY'
-          }
-        ],
-        proofs: []
+      // Get all customer orders and find the specific one
+      const orders = await getCustomerOrders();
+      const foundOrder = orders.find(o => o.id.toString() === orderId);
+      
+      if (!foundOrder) {
+        throw new Error('Order not found');
+      }
+
+      // Create mock timeline and proofs for now since API doesn't provide them
+      const timeline: TimelineEvent[] = [];
+      
+      // Generate timeline based on order status
+      timeline.push({
+        id: '1',
+        type: 'created',
+        message: 'Order created and payment confirmed',
+        timestamp: foundOrder.created_at,
+        location: foundOrder.pickupLocation || 'Pickup Location'
+      });
+
+      if (foundOrder.status !== 'pending') {
+        timeline.push({
+          id: '2',
+          type: 'assigned',
+          message: foundOrder.assignedDriverId ? `Driver assigned to delivery` : 'Processing order',
+          timestamp: foundOrder.created_at,
+          location: 'Distribution Center'
+        });
+      }
+
+      if (foundOrder.status === 'processing' || foundOrder.status === 'loaded' || foundOrder.status === 'delivered') {
+        timeline.push({
+          id: '3',
+          type: 'processing',
+          message: 'Order is being processed',
+          timestamp: foundOrder.pickupTime || foundOrder.created_at,
+          location: foundOrder.pickupLocation || 'Warehouse'
+        });
+      }
+
+      if (foundOrder.status === 'loaded' || foundOrder.status === 'delivered') {
+        timeline.push({
+          id: '4',
+          type: 'loaded',
+          message: 'Package loaded and ready for delivery',
+          timestamp: foundOrder.pickupTime || foundOrder.created_at,
+          location: 'Delivery Vehicle'
+        });
+      }
+
+      if (foundOrder.status === 'delivered') {
+        timeline.push({
+          id: '5',
+          type: 'delivered',
+          message: 'Package delivered successfully',
+          timestamp: foundOrder.actualDelivery || foundOrder.estimatedDelivery,
+          location: foundOrder.address
+        });
+      }
+
+      if (foundOrder.status === 'cancelled') {
+        timeline.push({
+          id: '6',
+          type: 'cancelled',
+          message: 'Order has been cancelled',
+          timestamp: foundOrder.actualDelivery || new Date().toISOString(),
+          location: 'System'
+        });
+      }
+
+      // Create extended order object with timeline and proofs
+      const orderDetails: OrderDetails = {
+        ...foundOrder,
+        timeline,
+        proofs: [] // Empty for now, could be extended later
       };
 
-      return mockOrder;
+      return orderDetails;
     },
-    enabled: !!orderId
+    enabled: !!orderId && !!user
   });
 
   // Enable polling for order updates
   usePolling({
     queryKey: ['order', orderId],
     pollingInterval: 5000,
-    enabled: !!orderId && order?.status !== 'delivered' && order?.status !== 'failed'
+    enabled: !!orderId && order?.status !== 'delivered' && order?.status !== 'cancelled'
   });
 
-  const getStatusColor = (status: Order['status']) => {
+  const getStatusColor = (status: ApiOrder['status']) => {
     switch (status) {
       case 'delivered':
         return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-      case 'in_transit':
+      case 'loaded':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
-      case 'picked_up':
+      case 'processing':
         return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
-      case 'failed':
+      case 'cancelled':
         return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
@@ -170,31 +173,31 @@ const SingleOrder: React.FC = () => {
         return <Package className="h-4 w-4" />;
       case 'assigned':
         return <User className="h-4 w-4" />;
-      case 'picked_up':
+      case 'processing':
         return <Truck className="h-4 w-4" />;
-      case 'in_transit':
+      case 'loaded':
         return <MapPin className="h-4 w-4" />;
       case 'delivered':
         return <CheckCircle className="h-4 w-4" />;
-      case 'failed':
+      case 'cancelled':
         return <AlertCircle className="h-4 w-4" />;
     }
   };
 
-  const getProgressPercentage = (status: Order['status']) => {
+  const getProgressPercentage = (status: ApiOrder['status']) => {
     switch (status) {
       case 'pending':
         return 20;
-      case 'picked_up':
+      case 'processing':
         return 40;
-      case 'in_transit':
-        return 70;
+      case 'loaded':
+        return 80;
       case 'delivered':
         return 100;
-      case 'failed':
+      case 'cancelled':
         return 0;
       default:
-        return 0;
+        return 10;
     }
   };
 
@@ -249,6 +252,21 @@ const SingleOrder: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-96">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-medium">Error loading order</h3>
+        <p className="text-muted-foreground">
+          {error instanceof Error ? error.message : 'Failed to load order details.'}
+        </p>
+        <Button onClick={() => navigate('/orders')} className="mt-4">
+          Back to Orders
+        </Button>
       </div>
     );
   }
@@ -331,7 +349,7 @@ const SingleOrder: React.FC = () => {
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Dimensions</Label>
                   <p className="font-medium">
-                    {order.dimensions.length} × {order.dimensions.width} × {order.dimensions.height} cm
+                    {order.dimensions || 'Not specified'}
                   </p>
                 </div>
                 <div>
@@ -341,11 +359,11 @@ const SingleOrder: React.FC = () => {
                   </Badge>
                 </div>
               </div>
-              {order.specialInstructions && (
+              {order.deliveryNotes && (
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Special Instructions</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">Delivery Notes</Label>
                   <p className="text-sm mt-1 p-3 bg-muted rounded-md">
-                    {order.specialInstructions}
+                    {order.deliveryNotes}
                   </p>
                 </div>
               )}
@@ -367,9 +385,8 @@ const SingleOrder: React.FC = () => {
                   <div className="mt-1">
                     <p className="font-medium">{order.senderName}</p>
                     <p className="text-sm text-muted-foreground">{order.senderAddress}</p>
-                    <p className="text-sm text-muted-foreground flex items-center">
-                      <Phone className="h-3 w-3 mr-1" />
-                      {order.senderPhone}
+                    <p className="text-sm text-muted-foreground">
+                      Contact information not available
                     </p>
                   </div>
                 </div>
@@ -377,7 +394,7 @@ const SingleOrder: React.FC = () => {
                   <Label className="text-sm font-medium text-muted-foreground">To</Label>
                   <div className="mt-1">
                     <p className="font-medium">{order.recipientName}</p>
-                    <p className="text-sm text-muted-foreground">{order.recipientAddress}</p>
+                    <p className="text-sm text-muted-foreground">{order.address}</p>
                     <p className="text-sm text-muted-foreground flex items-center">
                       <Phone className="h-3 w-3 mr-1" />
                       {order.recipientPhone}
@@ -389,7 +406,7 @@ const SingleOrder: React.FC = () => {
           </Card>
 
           {/* Contact Driver */}
-          {order.assignedDriverId && order.status !== 'delivered' && order.status !== 'failed' && (
+          {order.assignedDriverId && order.status !== 'delivered' && order.status !== 'cancelled' && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -425,9 +442,12 @@ const SingleOrder: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <MapComponent 
-                  orderId={order.id}
-                  driverId={order.assignedDriverId}
-                  route={order.route}
+                  orderId={order.id.toString()}
+                  driverId={order.assignedDriverId?.toString()}
+                  route={{
+                    polyline: '',
+                    coordinates: [[order.coordinate.lng, order.coordinate.lat]]
+                  }}
                 />
               </CardContent>
             </Card>

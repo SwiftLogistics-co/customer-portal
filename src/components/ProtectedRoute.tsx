@@ -32,7 +32,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (isCustomerRoute && user.role !== 'client') {
+  if (isCustomerRoute && user.role !== 'customer') {
     return <Navigate to="/driver/login" replace />;
   }
 
