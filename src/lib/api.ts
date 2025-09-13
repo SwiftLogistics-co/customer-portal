@@ -52,6 +52,7 @@ export interface NewOrderRequest {
   weight?: number;
   dimensions?: string;
   deliveryNotes?: string;
+  priority?: 'standard' | 'express' | 'urgent';
 }
 
 export interface DriverRoute {

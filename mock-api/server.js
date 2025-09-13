@@ -145,7 +145,7 @@ server.post('/cms/new-order', verifyToken, (req, res) => {
     },
     route_id: order.route || null,
     created_at: new Date().toISOString(),
-    priority: 'standard',
+    priority: order.priority || 'standard',
     assignedDriverId: null,
     estimatedDelivery: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
     senderName: req.user.name,
@@ -275,6 +275,12 @@ server.get('/ros/driver/routes/:driverId', verifyToken, (req, res) => {
   });
 });
 
+// ESB: Get Routes - GET /routes
+server.get('/routes', (req, res) => {
+  const db = getDb();
+  res.json(db.routes);
+});
+
 // Use default json-server router for other endpoints
 server.use(router);
 
@@ -288,4 +294,5 @@ server.listen(PORT, () => {
   console.log(`- PUT /wms/updateOrderStatus/{orderId}/{status}`);
   console.log(`- GET /cms/getOrderByDriverAndStatus`);
   console.log(`- GET /ros/driver/routes/{driverId}`);
+  console.log(`- GET /routes`);
 });

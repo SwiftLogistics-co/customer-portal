@@ -11,3 +11,4 @@ export { OrderRow } from './OrderRow';
 // Customer Form Components
 export { AddressAutocomplete } from './AddressAutocomplete';
 export { PackageDetails } from './PackageDetails';
+export { CoordinateSelector } from './CoordinateSelector';

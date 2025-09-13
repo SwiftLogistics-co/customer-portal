@@ -3,43 +3,39 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Package, MapPin, ArrowLeft } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Package, MapPin, ArrowLeft, Route } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { AddressAutocomplete } from '@/components/customer/AddressAutocomplete';
-import { PackageDetails } from '@/components/customer/PackageDetails';
+import { createOrder, NewOrderRequest } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { CoordinateSelector } from '@/components/customer/CoordinateSelector';
+
+interface Route {
+  id: number;
+  name: string;
+  description: string;
+  active: boolean;
+}
 
 const orderSchema = z.object({
-  senderName: z.string().min(2, 'Sender name is required'),
-  senderAddress: z.string().min(5, 'Sender address is required'),
-  senderPhone: z.string().min(10, 'Valid phone number is required'),
-  recipientName: z.string().min(2, 'Recipient name is required'),
-  recipientAddress: z.string().min(5, 'Recipient address is required'),
-  recipientPhone: z.string().min(10, 'Valid phone number is required'),
-  packageType: z.string().min(1, 'Package type is required'),
+  product: z.string().min(1, 'Package type is required'),
+  quantity: z.number().min(1, 'Quantity must be at least 1'),
+  address: z.string().min(5, 'Delivery address is required'),
+  coordinate: z.object({
+    lat: z.number(),
+    lng: z.number(),
+  }),
+  route: z.number().optional(),
   weight: z.number().min(0.1, 'Weight must be greater than 0'),
-  dimensions: z.object({
-    length: z.number().min(1, 'Length is required'),
-    width: z.number().min(1, 'Width is required'),
-    height: z.number().min(1, 'Height is required'),
-  }),
-  pickupDate: z.date({
-    required_error: 'Pickup date is required',
-  }),
-  deliveryDate: z.date({
-    required_error: 'Delivery date is required',
-  }),
+  dimensions: z.string().min(1, 'Dimensions are required'),
+  deliveryNotes: z.string().optional(),
   priority: z.enum(['standard', 'express', 'urgent']),
-  specialInstructions: z.string().optional(),
 });
 
 type OrderFormData = z.infer<typeof orderSchema>;
@@ -47,17 +43,29 @@ type OrderFormData = z.infer<typeof orderSchema>;
 const NewOrder: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Fetch available routes
+  const { data: routes } = useQuery<Route[]>({
+    queryKey: ['routes'],
+    queryFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:8290'}/routes`);
+      if (!response.ok) throw new Error('Failed to fetch routes');
+      return response.json();
+    },
+  });
 
   const form = useForm<OrderFormData>({
     resolver: zodResolver(orderSchema),
     defaultValues: {
       priority: 'standard',
-      dimensions: {
-        length: 1,
-        width: 1,
-        height: 1,
+      quantity: 1,
+      weight: 1.0,
+      dimensions: '20cm x 20cm x 20cm',
+      coordinate: {
+        lat: 40.7128, // Default NYC coordinates
+        lng: -74.0060,
       },
-      weight: 1,
     },
   });
 
@@ -65,35 +73,45 @@ const NewOrder: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      // Mock API call - replace with actual implementation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const orderData = {
-        ...data,
-        id: `ORD-${Date.now()}`,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        estimatedDelivery: data.deliveryDate.toISOString(),
+      const orderData: NewOrderRequest = {
+        product: data.product,
+        quantity: data.quantity,
+        address: data.address,
+        coordinate: [data.coordinate.lat, data.coordinate.lng],
+        route: data.route,
+        weight: data.weight,
+        dimensions: data.dimensions,
+        deliveryNotes: data.deliveryNotes,
+        priority: data.priority,
       };
 
-      console.log('Order created:', orderData);
+      const newOrder = await createOrder(orderData);
       
       toast({
         title: "Order created successfully!",
-        description: `Your order ${orderData.id} has been created and is being processed.`,
+        description: `Your order ${newOrder.trackingNumber} has been created and is being processed.`,
       });
       
-      // Navigate to order details or orders list
-      navigate(`/orders/${orderData.id}`);
+      // Navigate to order details
+      navigate(`/orders/${newOrder.id}`);
     } catch (error) {
+      console.error('Error creating order:', error);
       toast({
         title: "Error creating order",
-        description: "Please try again later.",
+        description: error instanceof Error ? error.message : "Please try again later.",
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleCoordinateChange = (lat: number, lng: number) => {
+    form.setValue('coordinate', { lat, lng });
+  };
+
+  const handleAddressChange = (address: string) => {
+    form.setValue('address', address);
   };
 
   return (
@@ -117,124 +135,6 @@ const NewOrder: React.FC = () => {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          {/* Sender Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                Sender Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="senderName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sender Name *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="John Doe" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="senderPhone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="+1 (555) 123-4567" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="senderAddress"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <AddressAutocomplete
-                        value={field.value || ''}
-                        onChange={field.onChange}
-                        label="Sender Address"
-                        placeholder="123 Main Street, City, State 12345"
-                        error={form.formState.errors.senderAddress?.message}
-                        required
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Recipient Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                Recipient Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="recipientName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Recipient Name *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Jane Smith" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="recipientPhone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="+1 (555) 987-6543" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="recipientAddress"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <AddressAutocomplete
-                        value={field.value || ''}
-                        onChange={field.onChange}
-                        label="Recipient Address"
-                        placeholder="456 Oak Avenue, City, State 67890"
-                        error={form.formState.errors.recipientAddress?.message}
-                        required
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-
           {/* Package Information */}
           <Card>
             <CardHeader>
@@ -243,99 +143,173 @@ const NewOrder: React.FC = () => {
                 Package Information
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <PackageDetails form={form} />
-            </CardContent>
-          </Card>
-
-          {/* Pickup & Delivery Dates */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CalendarIcon className="h-5 w-5" />
-                Pickup & Delivery Schedule
-              </CardTitle>
-            </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="pickupDate"
+                  name="product"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Pickup Date *</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date < new Date() || date < new Date("1900-01-01")
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                    <FormItem>
+                      <FormLabel>Package Type *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Electronics, Documents, Clothing, etc." {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 <FormField
                   control={form.control}
-                  name="deliveryDate"
+                  name="quantity"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Delivery Date *</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date < new Date() || date < new Date("1900-01-01")
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                    <FormItem>
+                      <FormLabel>Quantity *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="1" 
+                          {...field} 
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="weight"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Weight (kg) *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.1" 
+                          min="0.1" 
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0.1)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="dimensions"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dimensions *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="30cm x 20cm x 15cm" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Delivery Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Delivery Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Delivery Address *</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="123 Main Street, City, State 12345" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Coordinate Selector */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Delivery Location *</label>
+                <CoordinateSelector
+                  initialCoordinate={{
+                    lat: form.watch('coordinate')?.lat ?? 40.7128,
+                    lng: form.watch('coordinate')?.lng ?? -74.0060,
+                  }}
+                  onCoordinateChange={handleCoordinateChange}
+                  onAddressChange={handleAddressChange}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Click on the map to select the exact delivery location
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Route and Priority */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Route className="h-5 w-5" />
+                Route and Priority
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="route"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preferred Route</FormLabel>
+                      <Select onValueChange={(value) => field.onChange(parseInt(value))}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a route (optional)" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {routes?.filter(route => route.active).map((route) => (
+                            <SelectItem key={route.id} value={route.id.toString()}>
+                              {route.name} - {route.description}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="priority"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Priority *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select priority" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="standard">Standard</SelectItem>
+                          <SelectItem value="express">Express</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -352,7 +326,7 @@ const NewOrder: React.FC = () => {
             <CardContent>
               <FormField
                 control={form.control}
-                name="specialInstructions"
+                name="deliveryNotes"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Additional Notes</FormLabel>
