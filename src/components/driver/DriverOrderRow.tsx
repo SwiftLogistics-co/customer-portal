@@ -10,13 +10,13 @@ interface DriverOrder {
   recipientName: string;
   recipientAddress: string;
   status: 'pending' | 'processing' | 'loaded' | 'delivered' | 'cancelled';
-  priority: 'standard' | 'express' | 'urgent';
+  priority?: 'standard' | 'express' | 'urgent';
   assignedAt: string;
-  estimatedDelivery: string;
+  estimatedDelivery?: string;
   packageType: string;
-  weight: number;
+  weight?: number;
   deliveryNotes?: string;
-  pickupLocation: string;
+  pickupLocation?: string;
 }
 
 interface DriverOrderRowProps {
@@ -40,13 +40,14 @@ export const DriverOrderRow: React.FC<DriverOrderRowProps> = ({ order, onView })
     }
   };
 
-  const getPriorityColor = (priority: DriverOrder['priority']) => {
+  const getPriorityColor = (priority: 'standard' | 'express' | 'urgent') => {
     switch (priority) {
       case 'urgent':
         return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
       case 'express':
         return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400';
       case 'standard':
+      default:
         return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
     }
   };
@@ -66,24 +67,36 @@ export const DriverOrderRow: React.FC<DriverOrderRowProps> = ({ order, onView })
         </Badge>
       </TableCell>
       <TableCell>
-        <Badge variant="outline" className={getPriorityColor(order.priority)}>
-          {order.priority}
+        <Badge variant="outline" className={getPriorityColor(order.priority || 'standard')}>
+          {order.priority || 'standard'}
         </Badge>
       </TableCell>
       <TableCell>{format(new Date(order.assignedAt), 'MMM dd, yyyy')}</TableCell>
-      <TableCell>{format(new Date(order.estimatedDelivery), 'MMM dd, HH:mm')}</TableCell>
+      {/* <TableCell>
+        {order.estimatedDelivery 
+          ? format(new Date(order.estimatedDelivery), 'MMM dd, HH:mm')
+          : 'TBD'
+        }
+      </TableCell> */}
+      <TableCell>
+        None
+      </TableCell>
       <TableCell>
         <div>
           <div className="text-sm">{order.packageType}</div>
-          <div className="text-xs text-muted-foreground">{order.weight}kg</div>
+          <div className="text-xs text-muted-foreground">
+            {order.weight ? `${order.weight}kg` : 'Weight N/A'}
+          </div>
         </div>
       </TableCell>
       <TableCell>
-        <div className="text-sm text-muted-foreground">{order.pickupLocation}</div>
+        <div className="text-sm text-muted-foreground">
+          {order.pickupLocation || 'Warehouse'}
+        </div>
       </TableCell>
       <TableCell>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size="sm"
           onClick={() => onView(order.id)}
         >

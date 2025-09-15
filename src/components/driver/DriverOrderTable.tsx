@@ -7,13 +7,13 @@ interface DriverOrder {
   recipientName: string;
   recipientAddress: string;
   status: 'pending' | 'processing' | 'loaded' | 'delivered' | 'cancelled';
-  priority: 'standard' | 'express' | 'urgent';
+  priority?: 'standard' | 'express' | 'urgent';
   assignedAt: string;
-  estimatedDelivery: string;
+  estimatedDelivery?: string;
   packageType: string;
-  weight: number;
+  weight?: number;
   deliveryNotes?: string;
-  pickupLocation: string;
+  pickupLocation?: string;
 }
 
 interface DriverOrderTableProps {

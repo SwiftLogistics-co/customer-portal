@@ -61,7 +61,8 @@ const DriverRoute: React.FC = () => {
         const today = new Date().toISOString().split('T')[0];
       
       // Create route stops from orders
-      const stops: RouteStop[] = ordersResponse.map((order, index) => {
+      const ordersArray = Array.isArray(ordersResponse) ? ordersResponse : [ordersResponse];
+      const stops: RouteStop[] = ordersArray.map((order, index) => {
         // Determine if this is pickup or delivery based on status and workflow
         // If order is pending/processing, it needs pickup first, then delivery
         // If already loaded/delivered/cancelled, it's a delivery stop

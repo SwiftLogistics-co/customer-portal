@@ -45,28 +45,34 @@ const DriverOrders: React.FC = () => {
 
   // Filter and map orders to expected format
   const orders = React.useMemo(() => {
+    // Ensure allOrders is an array before filtering
+    if (!Array.isArray(allOrders)) {
+      console.warn('allOrders is not an array:', allOrders);
+      return [];
+    }
+
     return allOrders
       .filter(order => {
         const matchesSearch = 
           order.id.toString().includes(searchQuery.toLowerCase()) ||
-          order.recipientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.address.toLowerCase().includes(searchQuery.toLowerCase());
+          order.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          order.product.toLowerCase().includes(searchQuery.toLowerCase());
 
-        const matchesPriority = priorityFilter === 'all' || order.priority === priorityFilter;
+        const matchesPriority = priorityFilter === 'all' || (order.priority && order.priority === priorityFilter);
 
         return matchesSearch && matchesPriority;
       })
       .map(order => ({
         id: order.id.toString(),
-        recipientName: order.recipientName,
+        recipientName: `Client ${order.client_id || 'Unknown'}`, // Fallback since no recipient name in API
         recipientAddress: order.address,
         status: order.status as 'pending' | 'processing' | 'loaded' | 'delivered' | 'cancelled',
-        priority: order.priority,
+        priority: order.priority || 'standard', // Fallback to standard priority
         assignedAt: order.created_at,
-        estimatedDelivery: order.estimatedDelivery,
-        packageType: order.packageType,
-        weight: order.weight,
-        deliveryNotes: order.deliveryNotes,
+        estimatedDelivery: order.estimatedDelivery || 'TBD', // Fallback since not in API
+        packageType: order.product, // Use product as package type
+        weight: order.weight || 1, // Fallback weight
+        deliveryNotes: order.deliveryNotes || 'No notes',
         pickupLocation: order.pickupLocation || 'Warehouse'
       }));
   }, [allOrders, searchQuery, priorityFilter]);  const handleViewOrder = (orderId: string) => {
@@ -95,20 +101,31 @@ const DriverOrders: React.FC = () => {
           <CardTitle>Assigned Orders</CardTitle>
         </CardHeader>
         <CardContent>
-          <DriverOrderFilters
-            searchQuery={searchQuery}
-            statusFilter={statusFilter}
-            priorityFilter={priorityFilter}
-            onSearchChange={setSearchQuery}
-            onStatusChange={setStatusFilter}
-            onPriorityChange={setPriorityFilter}
-          />
-          
-          <DriverOrderTable
-            orders={orders || []}
-            onViewOrder={handleViewOrder}
-            isLoading={isLoading}
-          />
+          {error ? (
+            <div className="text-center py-8">
+              <div className="text-red-500 mb-2">Error loading orders</div>
+              <div className="text-sm text-muted-foreground">
+                {error instanceof Error ? error.message : 'Failed to load orders'}
+              </div>
+            </div>
+          ) : (
+            <>
+              <DriverOrderFilters
+                searchQuery={searchQuery}
+                statusFilter={statusFilter}
+                priorityFilter={priorityFilter}
+                onSearchChange={setSearchQuery}
+                onStatusChange={setStatusFilter}
+                onPriorityChange={setPriorityFilter}
+              />
+              
+              <DriverOrderTable
+                orders={orders || []}
+                onViewOrder={handleViewOrder}
+                isLoading={isLoading}
+              />
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

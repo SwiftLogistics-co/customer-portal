@@ -16,8 +16,8 @@ interface AssignedOrder {
   recipientName: string;
   recipientAddress: string;
   status: 'pending' | 'processing' | 'loaded' | 'delivered' | 'cancelled';
-  priority: 'standard' | 'express' | 'urgent';
-  estimatedDelivery: string;
+  priority?: 'standard' | 'express' | 'urgent';
+  estimatedDelivery?: string;
   packageType: string;
   deliveryNotes?: string;
 }
@@ -58,13 +58,14 @@ export const OrderStatusCard: React.FC<OrderStatusCardProps> = ({ order, onView 
     }
   };
 
-  const getPriorityColor = (priority: AssignedOrder['priority']) => {
+  const getPriorityColor = (priority: 'standard' | 'express' | 'urgent') => {
     switch (priority) {
       case 'urgent':
         return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
       case 'express':
         return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400';
       case 'standard':
+      default:
         return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
     }
   };
@@ -74,8 +75,8 @@ export const OrderStatusCard: React.FC<OrderStatusCardProps> = ({ order, onView 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Badge variant="outline">{order.id}</Badge>
-          <Badge className={getPriorityColor(order.priority)}>
-            {order.priority}
+          <Badge className={getPriorityColor(order.priority || 'standard')}>
+            {order.priority || 'standard'}
           </Badge>
         </div>
         <div className={`p-2 rounded-full ${getStatusColor(order.status)}`}>
@@ -90,7 +91,11 @@ export const OrderStatusCard: React.FC<OrderStatusCardProps> = ({ order, onView 
       
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          ETA: {formatDistanceToNow(new Date(order.estimatedDelivery), { addSuffix: true })}
+          {/* ETA: {order.estimatedDelivery 
+            ? formatDistanceToNow(new Date(order.estimatedDelivery), { addSuffix: true })
+            : 'TBD'
+          } */}
+          TBD
         </div>
         <Button 
           variant="ghost" 

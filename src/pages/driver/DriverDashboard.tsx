@@ -47,15 +47,16 @@ const DriverDashboard: React.FC = () => {
     refetchInterval: 60000, // Refetch every minute
     select: (orders) => {
       // Transform the API order data to match the expected interface
-      return orders.map(order => ({
-        id: order.trackingNumber,
-        recipientName: order.recipientName,
+      const ordersArray = Array.isArray(orders) ? orders : [orders];
+      return ordersArray.map(order => ({
+        id: order.trackingNumber || order.id.toString(),
+        recipientName: `Client ${order.client_id || 'Unknown'}`,
         recipientAddress: order.address,
         status: order.status,
-        priority: order.priority,
-        estimatedDelivery: order.estimatedDelivery,
-        packageType: order.packageType,
-        deliveryNotes: order.deliveryNotes
+        priority: order.priority || 'standard',
+        estimatedDelivery: order.estimatedDelivery || 'TBD',
+        packageType: order.product,
+        deliveryNotes: order.deliveryNotes || 'No notes'
       }));
     }
   });

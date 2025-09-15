@@ -20,12 +20,13 @@ export interface Order {
   address: string;
   route_id?: number;
   created_at: string;
-  // Optional fields that may come from other endpoints or may not always be present
+  // Core fields from getDriverOrders API
   client_id?: number;
-  coordinate?: string | {
+  coordinate?: {
     lat: number;
     lng: number;
   };
+  // Optional fields that may come from other endpoints or may not always be present
   priority?: 'standard' | 'express' | 'urgent';
   estimatedDelivery?: string;
   actualDelivery?: string;
@@ -156,9 +157,15 @@ export const createOrder = async (orderData: NewOrderRequest): Promise<Order> =>
  */
 export const getDriverOrders = async (driverId: number, status?: string): Promise<Order[]> => {
   const params = new URLSearchParams({ driverId: driverId.toString() });
+  console.log("status:", status);
   if (status && status !== 'all') {
     params.append('status', status);
+  } else {
+    params.append('status', 'pending');
+    console.log("No status filter applied");
   }
+
+  console.log("Fetching driver orders with params:", params.toString());
 
   const response = await fetch(`${API_BASE_URL}/cms/getOrderByDriverAndStatus?${params}`, {
     headers: getAuthHeaders(),
@@ -170,7 +177,22 @@ export const getDriverOrders = async (driverId: number, status?: string): Promis
   }
 
   const data = await response.json();
-  return data.response.orders.order;
+  
+  // Handle both single order object and array of orders
+  const orders = data.response.orders.order;
+  
+  // If orders is a single object, wrap it in an array
+  if (orders && !Array.isArray(orders)) {
+    return [orders];
+  }
+  
+  // If orders is already an array, return it
+  if (Array.isArray(orders)) {
+    return orders;
+  }
+  
+  // If orders is null/undefined, return empty array
+  return [];
 };
 
 /**

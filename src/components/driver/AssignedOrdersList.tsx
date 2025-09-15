@@ -7,8 +7,8 @@ interface AssignedOrder {
   recipientName: string;
   recipientAddress: string;
   status: 'pending' | 'processing' | 'loaded' | 'delivered' | 'cancelled';
-  priority: 'standard' | 'express' | 'urgent';
-  estimatedDelivery: string;
+  priority?: 'standard' | 'express' | 'urgent';
+  estimatedDelivery?: string;
   packageType: string;
   deliveryNotes?: string;
 }
