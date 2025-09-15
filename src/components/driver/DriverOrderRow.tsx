@@ -21,7 +21,7 @@ interface DriverOrder {
 
 interface DriverOrderRowProps {
   order: DriverOrder;
-  onView: (orderId: string) => void;
+  onView: (orderId: string, status: string) => void;
 }
 
 export const DriverOrderRow: React.FC<DriverOrderRowProps> = ({ order, onView }) => {
@@ -98,7 +98,7 @@ export const DriverOrderRow: React.FC<DriverOrderRowProps> = ({ order, onView })
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onView(order.id)}
+          onClick={() => onView(order.id, order.status)}
         >
           <Eye className="h-4 w-4" />
         </Button>

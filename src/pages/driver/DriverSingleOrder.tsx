@@ -55,7 +55,9 @@ const DriverSingleOrder: React.FC = () => {
       if (!orderId || !user) throw new Error('Order ID and user authentication required');
       
       // Get all driver orders and find the specific one
-      const orders = await getDriverOrders(user.id);
+      const urlSearch = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+      const statusParam = urlSearch.get('status') || 'pending';
+      const orders = await getDriverOrders(user.id, statusParam);
       const foundOrder = orders.find(o => o.id.toString() === orderId);
       
       if (!foundOrder) {
