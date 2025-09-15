@@ -7,28 +7,28 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { getCustomerOrders, Order as ApiOrder } from '@/lib/api';
+import { toast } from '@/hooks/use-toast';
+import { usePolling } from '@/hooks/usePolling';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Package, 
-  MapPin, 
-  Clock, 
-  User, 
-  Phone, 
-  FileImage,
-  Upload,
+import { getCustomerOrders, Order } from '@/lib/api';
+import { format } from 'date-fns';
+import {
   ArrowLeft,
+  Package,
+  MapPin,
+  Clock,
+  User,
+  Phone,
   Truck,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  FileImage,
+  Upload
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { toast } from '@/hooks/use-toast';
 import MapComponent from '@/components/MapComponent';
-import { usePolling } from '@/hooks/usePolling';
 
 // Extended interface for detailed order view with timeline and proofs
-interface OrderDetails extends ApiOrder {
+interface OrderDetails extends Order {
   timeline: TimelineEvent[];
   proofs: Proof[];
 }
@@ -78,14 +78,14 @@ const SingleOrder: React.FC = () => {
         type: 'created',
         message: 'Order created and payment confirmed',
         timestamp: foundOrder.created_at,
-        location: foundOrder.pickupLocation || 'Pickup Location'
+        location: 'Distribution Center'
       });
 
       if (foundOrder.status !== 'pending') {
         timeline.push({
           id: '2',
           type: 'assigned',
-          message: foundOrder.assignedDriverId ? `Driver assigned to delivery` : 'Processing order',
+          message: 'Processing order',
           timestamp: foundOrder.created_at,
           location: 'Distribution Center'
         });
@@ -96,8 +96,8 @@ const SingleOrder: React.FC = () => {
           id: '3',
           type: 'processing',
           message: 'Order is being processed',
-          timestamp: foundOrder.pickupTime || foundOrder.created_at,
-          location: foundOrder.pickupLocation || 'Warehouse'
+          timestamp: foundOrder.created_at,
+          location: 'Warehouse'
         });
       }
 
@@ -106,17 +106,19 @@ const SingleOrder: React.FC = () => {
           id: '4',
           type: 'loaded',
           message: 'Package loaded and ready for delivery',
-          timestamp: foundOrder.pickupTime || foundOrder.created_at,
+          timestamp: foundOrder.created_at,
           location: 'Delivery Vehicle'
         });
       }
 
       if (foundOrder.status === 'delivered') {
+        // Estimate delivery time as current time if delivered
+        const deliveryTime = new Date().toISOString();
         timeline.push({
           id: '5',
           type: 'delivered',
           message: 'Package delivered successfully',
-          timestamp: foundOrder.actualDelivery || foundOrder.estimatedDelivery,
+          timestamp: deliveryTime,
           location: foundOrder.address
         });
       }
@@ -126,7 +128,7 @@ const SingleOrder: React.FC = () => {
           id: '6',
           type: 'cancelled',
           message: 'Order has been cancelled',
-          timestamp: foundOrder.actualDelivery || new Date().toISOString(),
+          timestamp: foundOrder.created_at,
           location: 'System'
         });
       }
@@ -150,7 +152,7 @@ const SingleOrder: React.FC = () => {
     enabled: !!orderId && order?.status !== 'delivered' && order?.status !== 'cancelled'
   });
 
-  const getStatusColor = (status: ApiOrder['status']) => {
+  const getStatusColor = (status: Order['status']) => {
     switch (status) {
       case 'delivered':
         return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
@@ -184,7 +186,7 @@ const SingleOrder: React.FC = () => {
     }
   };
 
-  const getProgressPercentage = (status: ApiOrder['status']) => {
+  const getProgressPercentage = (status: Order['status']) => {
     switch (status) {
       case 'pending':
         return 20;
@@ -243,8 +245,8 @@ const SingleOrder: React.FC = () => {
   const handleContactDriver = () => {
     // Mock contact functionality
     toast({
-      title: "Contact Driver",
-      description: "Driver will be notified of your message",
+      title: "Contact Support",
+      description: "Support team will be notified of your message",
     });
   };
 
@@ -303,7 +305,7 @@ const SingleOrder: React.FC = () => {
               </Badge>
               <span className="text-muted-foreground">•</span>
               <span className="text-sm text-muted-foreground">
-                ETA: {format(new Date(order.estimatedDelivery), 'MMM dd, yyyy HH:mm')}
+                Created: {format(new Date(order.created_at), 'MMM dd, yyyy HH:mm')}
               </span>
             </div>
           </div>
@@ -339,89 +341,65 @@ const SingleOrder: React.FC = () => {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Type</Label>
-                  <p className="font-medium">{order.packageType}</p>
+                  <Label className="text-sm font-medium text-muted-foreground">Product</Label>
+                  <p className="font-medium">{order.product}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Weight</Label>
-                  <p className="font-medium">{order.weight} kg</p>
+                  <Label className="text-sm font-medium text-muted-foreground">Quantity</Label>
+                  <p className="font-medium">{order.quantity}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Dimensions</Label>
-                  <p className="font-medium">
-                    {order.dimensions || 'Not specified'}
-                  </p>
+                  <Label className="text-sm font-medium text-muted-foreground">Route ID</Label>
+                  <p className="font-medium">{order.route_id || 'Not assigned'}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Priority</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
                   <Badge variant="outline" className="mt-1">
-                    {order.priority}
+                    {order.status}
                   </Badge>
                 </div>
               </div>
-              {order.deliveryNotes && (
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Delivery Notes</Label>
-                  <p className="text-sm mt-1 p-3 bg-muted rounded-md">
-                    {order.deliveryNotes}
-                  </p>
-                </div>
-              )}
             </CardContent>
           </Card>
 
-          {/* Addresses */}
+          {/* Delivery Address */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
-                Addresses
+                Delivery Address
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">From</Label>
-                  <div className="mt-1">
-                    <p className="font-medium">{order.senderName}</p>
-                    <p className="text-sm text-muted-foreground">{order.senderAddress}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Contact information not available
-                    </p>
-                  </div>
-                </div>
-                <div className="border-t pt-4">
-                  <Label className="text-sm font-medium text-muted-foreground">To</Label>
-                  <div className="mt-1">
-                    <p className="font-medium">{order.recipientName}</p>
-                    <p className="text-sm text-muted-foreground">{order.address}</p>
-                    <p className="text-sm text-muted-foreground flex items-center">
-                      <Phone className="h-3 w-3 mr-1" />
-                      {order.recipientPhone}
-                    </p>
-                  </div>
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">Delivery To</Label>
+                <div className="mt-1">
+                  <p className="font-medium">{order.address}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Route ID: {order.route_id || 'Not assigned'}
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Contact Driver */}
-          {order.assignedDriverId && order.status !== 'delivered' && order.status !== 'cancelled' && (
+          {/* Contact Support */}
+          {order.status !== 'delivered' && order.status !== 'cancelled' && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
-                  Driver Support
+                  Customer Support
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Need to contact your driver? Send a message or request a callback.
+                    Need help with your order? Contact our support team.
                   </p>
                   <Button onClick={handleContactDriver} className="w-full">
                     <Phone className="h-4 w-4 mr-2" />
-                    Contact Driver
+                    Contact Support
                   </Button>
                 </div>
               </CardContent>
@@ -431,8 +409,8 @@ const SingleOrder: React.FC = () => {
 
         {/* Map and Timeline */}
         <div className="space-y-6">
-          {/* Live Map */}
-          {order.assignedDriverId && (
+          {/* Live Tracking - Disabled for now since API doesn't provide coordinates */}
+          {false && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -441,14 +419,12 @@ const SingleOrder: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <MapComponent 
-                  orderId={order.id.toString()}
-                  driverId={order.assignedDriverId?.toString()}
-                  route={{
-                    polyline: '',
-                    coordinates: [[order.coordinate.lng, order.coordinate.lat]]
-                  }}
-                />
+                <div className="text-center py-8 border-2 border-dashed border-muted rounded-lg">
+                  <MapPin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Live tracking will be available soon
+                  </p>
+                </div>
               </CardContent>
             </Card>
           )}
