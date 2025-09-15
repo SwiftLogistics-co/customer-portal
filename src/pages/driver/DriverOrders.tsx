@@ -75,8 +75,8 @@ const DriverOrders: React.FC = () => {
         deliveryNotes: order.deliveryNotes || 'No notes',
         pickupLocation: order.pickupLocation || 'Warehouse'
       }));
-  }, [allOrders, searchQuery, priorityFilter]);  const handleViewOrder = (orderId: string, status: string) => {
-    navigate(`/driver/orders/${orderId}?status=${status}`);
+  }, [allOrders, searchQuery, priorityFilter]);  const handleViewOrder = (orderId: string, status?: string) => {
+    navigate(`/driver/orders/${orderId}${status ? `?status=${status}` : ''}`);
   };
 
   return (
