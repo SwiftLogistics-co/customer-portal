@@ -64,11 +64,17 @@ export interface DriverRoute {
   optimized_route: {
     orders: Array<{
       order_id: number;
+      client_id: number;
+      route_id: number;
+      created_at: string;
       address: string;
       coordinate: {
         lat: number;
         lng: number;
       };
+      product: string;
+      quantity: number;
+      status: 'pending' | 'processing' | 'loaded' | 'delivered' | 'cancelled';
     }>;
   };
 }

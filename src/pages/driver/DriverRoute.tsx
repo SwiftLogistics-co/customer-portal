@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { RouteOverview } from '@/components/driver/RouteOverview';
 import { RouteStopList } from '@/components/driver/RouteStopList';
-import { getDriverRoutes, getDriverOrders } from '@/lib/api';
+import { getDriverRoutes } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface RouteStop {
@@ -51,47 +51,46 @@ const DriverRoute: React.FC = () => {
       }
 
       try {
-        // Fetch route optimization data and driver orders in parallel
-        const [routeResponse, ordersResponse] = await Promise.all([
-          getDriverRoutes(user.id),
-          getDriverOrders(user.id)
-        ]);
+        // Fetch route optimization data which includes all order information
+        const routeResponse = await getDriverRoutes(user.id);
+
+        console.log('Route API response:', routeResponse);
 
         // Transform the API response to match RouteInfo interface
         const today = new Date().toISOString().split('T')[0];
       
-      // Create route stops from orders
-      const ordersArray = Array.isArray(ordersResponse) ? ordersResponse : [ordersResponse];
-      const stops: RouteStop[] = ordersArray.map((order, index) => {
-        // Determine if this is pickup or delivery based on status and workflow
-        // If order is pending/processing, it needs pickup first, then delivery
-        // If already loaded/delivered/cancelled, it's a delivery stop
-        const isPickupPhase = order.status === 'pending' || order.status === 'processing';
-        
-        return {
-          id: `stop-${order.id}`,
-          orderId: order.id.toString(),
-          type: isPickupPhase ? 'pickup' : 'delivery',
-          recipientName: isPickupPhase ? (order.senderName || 'Pickup Location') : order.recipientName,
-          address: isPickupPhase ? (order.pickupLocation || order.senderAddress || order.address) : order.address,
-          phone: order.recipientPhone || '+1-555-000-0000',
-          estimatedTime: new Date(Date.now() + (index + 1) * 60 * 60 * 1000).toLocaleTimeString('en-US', { 
-            hour12: false, 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
-          duration: 15, // Default duration
-          status: order.status === 'delivered' ? 'completed' : 
-                  order.status === 'cancelled' ? 'failed' : 'pending',
-          packageType: order.packageType || 'Package',
-          priority: order.priority,
-          notes: order.deliveryNotes || order.driverNotes,
-          latitude: order.coordinate?.lat || 0,
-          longitude: order.coordinate?.lng || 0
-        };
-      });
+        // Create route stops from orders in the route response
+        const orders = routeResponse.optimized_route.orders;
+        const stops: RouteStop[] = orders.map((order, index) => {
+          // Determine if this is pickup or delivery based on status and workflow
+          // If order is pending/processing, it needs pickup first, then delivery
+          // If already loaded/delivered/cancelled, it's a delivery stop
+          const isPickupPhase = order.status === 'pending' || order.status === 'processing';
+          
+          return {
+            id: `stop-${order.order_id}`,
+            orderId: order.order_id.toString(),
+            type: isPickupPhase ? 'pickup' : 'delivery',
+            recipientName: `Client ${order.client_id}`, // Use client_id since no recipient name
+            address: order.address,
+            phone: '+1-555-000-0000', // Default phone as API doesn't provide it
+            estimatedTime: new Date(Date.now() + (index + 1) * 60 * 60 * 1000).toLocaleTimeString('en-US', { 
+              hour12: false, 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            }),
+            duration: 15, // Default duration
+            status: order.status === 'delivered' ? 'completed' : 
+                    order.status === 'cancelled' ? 'failed' : 'pending',
+            packageType: order.product, // Use product as package type
+            priority: 'standard' as const, // Default priority as API doesn't provide it
+            notes: `${order.product} - Quantity: ${order.quantity}`, // Use product and quantity as notes
+            latitude: order.coordinate.lat,
+            longitude: order.coordinate.lng
+          };
+        });
 
-      const completedStops = stops.filter(stop => stop.status === 'completed').length;
+        const completedStops = stops.filter(stop => stop.status === 'completed').length;
 
         return {
           routeId: `RT-${today}-${user.id}`,
@@ -119,8 +118,9 @@ const DriverRoute: React.FC = () => {
     setIsRefreshing(false);
   };
 
-  const handleViewOrder = (orderId: string) => {
-    navigate(`/driver/orders/${orderId}`);
+  const handleViewOrder = (orderId: string, status: string) => {
+    console.log('Viewing order:', orderId, 'with status:', status);
+    // navigate(`/driver/orders/${orderId}?status=${status}`);
   };
 
   const handleCallContact = (phone: string) => {

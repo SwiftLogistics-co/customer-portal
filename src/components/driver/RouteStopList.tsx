@@ -22,7 +22,7 @@ interface RouteStop {
 
 interface RouteStopListProps {
   stops: RouteStop[];
-  onViewOrder: (orderId: string) => void;
+  onViewOrder: (orderId: string, status: string) => void;
   onCallContact?: (phone: string) => void;
 }
 

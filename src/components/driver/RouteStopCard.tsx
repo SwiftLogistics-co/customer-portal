@@ -31,7 +31,7 @@ interface RouteStop {
 interface RouteStopCardProps {
   stop: RouteStop;
   index: number;
-  onView: (orderId: string) => void;
+  onView: (orderId: string, status: string) => void;
   onCall?: (phone: string) => void;
 }
 
@@ -125,7 +125,10 @@ export const RouteStopCard: React.FC<RouteStopCardProps> = ({
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => onView(stop.orderId)}
+            onClick={() => {
+              console.log('status', stop.status);
+              onView(stop.orderId, stop.status || 'pending');
+            }}
           >
             <Eye className="h-4 w-4 mr-1" />
             View
