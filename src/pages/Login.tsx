@@ -17,7 +17,7 @@ const Login: React.FC = () => {
   const { login, user } = useAuth();
   const location = useLocation();
 
-  if (user) {
+  if (user && user.role === 'customer') {
     const from = location.state?.from?.pathname || '/dashboard';
     return <Navigate to={from} replace />;
   }
@@ -27,7 +27,17 @@ const Login: React.FC = () => {
     setError('');
     setIsLoading(true);
 
-    const success = await login(username, password);
+    const success = await login(username, password, 'customer');
+    console.log('Login success:', success);
+    console.log('User after login attempt:', user);
+    if (success && user) {
+      console.log("Entered inside.")
+      const updatedUser = { ...user, role: 'customer' };
+      console.log('Updated user:', updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      window.location.href = '/dashboard';
+      return;
+    }
     if (!success) {
       setError('Invalid username or password');
     }

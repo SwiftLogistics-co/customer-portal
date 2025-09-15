@@ -32,11 +32,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   }, []);
 
-  const login = async (username: string, password: string, userType: 'customer' | 'driver' = 'customer'): Promise<boolean> => {
+  const login = async (username: string, password: string, userType: 'customer' | 'driver'): Promise<boolean> => {
     try {
       const data = await apiLogin(username, password);
+      data.user.role = userType;
       localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('user', JSON.stringify(data.user));
+      console.log("user is:",data.user);
       setUser(data.user);
       return true;
     } catch (error) {

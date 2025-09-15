@@ -18,25 +18,26 @@ export interface Order {
   product: string;
   quantity: number;
   status: 'pending' | 'processing' | 'loaded' | 'delivered' | 'cancelled';
-  priority: 'standard' | 'express' | 'urgent';
-  created_at: string;
-  estimatedDelivery: string;
-  actualDelivery?: string;
-  assignedDriverId?: number;
   address: string;
-  coordinate: {
+  coordinate: string | {
     lat: number;
     lng: number;
   };
   route_id?: number;
-  senderName: string;
-  senderAddress: string;
-  recipientName: string;
-  recipientPhone: string;
-  packageType: string;
-  weight: number;
-  dimensions: string;
-  trackingNumber: string;
+  created_at: string;
+  // Optional fields that may come from other endpoints or may not always be present
+  priority?: 'standard' | 'express' | 'urgent';
+  estimatedDelivery?: string;
+  actualDelivery?: string;
+  assignedDriverId?: number;
+  senderName?: string;
+  senderAddress?: string;
+  recipientName?: string;
+  recipientPhone?: string;
+  packageType?: string;
+  weight?: number;
+  dimensions?: string;
+  trackingNumber?: string;
   deliveryNotes?: string;
   driverNotes?: string;
   pickupLocation?: string;
@@ -49,10 +50,6 @@ export interface NewOrderRequest {
   address: string;
   coordinate: [number, number]; // [lat, lng]
   route?: number;
-  weight?: number;
-  dimensions?: string;
-  deliveryNotes?: string;
-  priority?: 'standard' | 'express' | 'urgent';
 }
 
 export interface DriverRoute {
@@ -277,9 +274,9 @@ export const getCustomerRecentActivity = async (): Promise<Array<{
     activities.push({
       id: `created-${order.id}`,
       type: 'order_created' as const,
-      trackingNumber: order.trackingNumber,
-      orderId: order.id,
-      message: `New order created - ${order.packageType}`,
+      trackingNumber: order.trackingNumber || `ORD-${order.id}`,
+      orderId: order.id.toString(),
+      message: `New order created - ${order.packageType || order.product}`,
       timestamp: order.created_at
     });
     
@@ -288,8 +285,8 @@ export const getCustomerRecentActivity = async (): Promise<Array<{
       activities.push({
         id: `assigned-${order.id}`,
         type: 'driver_assigned' as const,
-        trackingNumber: order.trackingNumber,
-        orderId: order.id,
+        trackingNumber: order.trackingNumber || `ORD-${order.id}`,
+        orderId: order.id.toString(),
         message: `Driver assigned to delivery`,
         timestamp: order.created_at // Use creation time as we don't have assignment time
       });
@@ -300,8 +297,8 @@ export const getCustomerRecentActivity = async (): Promise<Array<{
       activities.push({
         id: `processing-${order.id}`,
         type: 'order_processing' as const,
-        trackingNumber: order.trackingNumber,
-        orderId: order.id,
+        trackingNumber: order.trackingNumber || `ORD-${order.id}`,
+        orderId: order.id.toString(),
         message: `Package is being processed`,
         timestamp: order.created_at
       });
@@ -312,8 +309,8 @@ export const getCustomerRecentActivity = async (): Promise<Array<{
       activities.push({
         id: `delivered-${order.id}`,
         type: 'order_delivered' as const,
-        trackingNumber: order.trackingNumber,
-        orderId: order.id,
+        trackingNumber: order.trackingNumber || `ORD-${order.id}`,
+        orderId: order.id.toString(),
         message: `Package delivered to ${order.address}`,
         timestamp: order.actualDelivery
       });

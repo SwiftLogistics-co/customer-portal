@@ -31,10 +31,6 @@ const orderSchema = z.object({
     lng: z.number(),
   }),
   route: z.number().optional(),
-  weight: z.number().min(0.1, 'Weight must be greater than 0'),
-  dimensions: z.string().min(1, 'Dimensions are required'),
-  deliveryNotes: z.string().optional(),
-  priority: z.enum(['standard', 'express', 'urgent']),
 });
 
 type OrderFormData = z.infer<typeof orderSchema>;
@@ -87,10 +83,7 @@ const NewOrder: React.FC = () => {
   const form = useForm<OrderFormData>({
     resolver: zodResolver(orderSchema),
     defaultValues: {
-      priority: 'standard',
       quantity: 1,
-      weight: 1.0,
-      dimensions: '20cm x 20cm x 20cm',
       coordinate: {
         lat: 40.7128, // Default NYC coordinates
         lng: -74.0060,
@@ -108,17 +101,13 @@ const NewOrder: React.FC = () => {
         address: data.address,
         coordinate: [data.coordinate.lat, data.coordinate.lng],
         route: data.route,
-        weight: data.weight,
-        dimensions: data.dimensions,
-        deliveryNotes: data.deliveryNotes,
-        priority: data.priority,
       };
 
       const newOrder = await createOrder(orderData);
       
       toast({
         title: "Order created successfully!",
-        description: `Your order ${newOrder.trackingNumber} has been created and is being processed.`,
+        description: `Your order ${newOrder.trackingNumber || `#${newOrder.id}`} has been created and is being processed.`,
       });
       
       // Navigate to order details
@@ -206,40 +195,6 @@ const NewOrder: React.FC = () => {
                   )}
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="weight"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Weight (kg) *</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          step="0.1" 
-                          min="0.1" 
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0.1)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="dimensions"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Dimensions *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="30cm x 20cm x 15cm" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
             </CardContent>
           </Card>
 
@@ -287,85 +242,35 @@ const NewOrder: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Route and Priority */}
+          {/* Route Selection */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Route className="h-5 w-5" />
-                Route and Priority
+                Route Selection
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="route"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preferred Route</FormLabel>
-                      <Select onValueChange={(value) => field.onChange(parseInt(value))}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a route (optional)" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {routes.filter(route => route.active).map((route) => (
-                            <SelectItem key={route.id} value={route.id.toString()}>
-                              {route.name} - {route.description}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="priority"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Priority *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select priority" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="standard">Standard</SelectItem>
-                          <SelectItem value="express">Express</SelectItem>
-                          <SelectItem value="urgent">Urgent</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Special Instructions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Special Instructions (Optional)</CardTitle>
-            </CardHeader>
-            <CardContent>
               <FormField
                 control={form.control}
-                name="deliveryNotes"
+                name="route"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Additional Notes</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Any special delivery instructions, access codes, or notes for the driver..."
-                        className="min-h-[100px]"
-                        {...field}
-                      />
-                    </FormControl>
+                    <FormLabel>Preferred Route</FormLabel>
+                    <Select onValueChange={(value) => field.onChange(parseInt(value))}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a route (optional)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {routes.filter(route => route.active).map((route) => (
+                          <SelectItem key={route.id} value={route.id.toString()}>
+                            {route.name} - {route.description}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
