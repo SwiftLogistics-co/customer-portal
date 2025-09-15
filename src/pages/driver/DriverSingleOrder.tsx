@@ -36,6 +36,7 @@ interface DriverOrderDetail extends Order {
   // Additional fields that might be used in the UI
   recipientEmail?: string;
   specialInstructions?: string;
+  assignedAt?: string; // For compatibility with table components
 }
 
 const DriverSingleOrder: React.FC = () => {
@@ -64,8 +65,21 @@ const DriverSingleOrder: React.FC = () => {
       // Create extended order object with additional UI fields
       const orderDetail: DriverOrderDetail = {
         ...foundOrder,
-        recipientEmail: `${foundOrder.recipientName.toLowerCase().replace(' ', '.')}@example.com`,
-        specialInstructions: foundOrder.deliveryNotes || undefined
+        // Generate fallback data based on available API fields
+        recipientName: `Client ${foundOrder.client_id || 'Unknown'}`,
+        recipientEmail: `client${foundOrder.client_id || 'unknown'}@example.com`,
+        recipientPhone: foundOrder.recipientPhone || '+1-555-000-0000',
+        packageType: foundOrder.product,
+        specialInstructions: foundOrder.deliveryNotes || undefined,
+        // Add fallback values for missing optional fields
+        senderName: foundOrder.senderName || 'Warehouse',
+        senderAddress: foundOrder.senderAddress || 'Main Warehouse',
+        pickupLocation: foundOrder.pickupLocation || 'Main Warehouse',
+        weight: foundOrder.weight || 1,
+        trackingNumber: foundOrder.trackingNumber || `TK${foundOrder.id}`,
+        estimatedDelivery: foundOrder.estimatedDelivery || 'TBD',
+        assignedAt: foundOrder.created_at, // Use created_at as assignedAt fallback
+        priority: foundOrder.priority || 'standard'
       };
 
       return orderDetail;
@@ -447,7 +461,10 @@ const DriverSingleOrder: React.FC = () => {
                   <div>
                     <p className="text-sm font-medium">Estimated Delivery</p>
                     <p className="text-xs text-muted-foreground">
-                      {format(new Date(order.estimatedDelivery), 'MMM dd, yyyy HH:mm')}
+                      {order.estimatedDelivery && order.estimatedDelivery !== 'TBD' 
+                        ? format(new Date(order.estimatedDelivery), 'MMM dd, yyyy HH:mm')
+                        : 'TBD'
+                      }
                     </p>
                   </div>
                 </div>
