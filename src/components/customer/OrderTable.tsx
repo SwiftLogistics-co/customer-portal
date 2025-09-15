@@ -35,13 +35,12 @@ export const OrderTable: React.FC<OrderTableProps> = ({
       <TableHeader>
         <TableRow>
           <TableHead>Order ID</TableHead>
-          <TableHead>Recipient</TableHead>
+          <TableHead>Product & Address</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead>Priority</TableHead>
+          <TableHead>Quantity</TableHead>
+          <TableHead>Route ID</TableHead>
           <TableHead>Created</TableHead>
-          <TableHead>Est. Delivery</TableHead>
-          <TableHead>Tracking</TableHead>
-          <TableHead>Package</TableHead>
+          <TableHead>Priority</TableHead>
           <TableHead>Actions</TableHead>
         </TableRow>
       </TableHeader>

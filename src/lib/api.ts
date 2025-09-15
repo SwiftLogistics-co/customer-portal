@@ -14,18 +14,18 @@ export interface User {
 
 export interface Order {
   id: number;
-  client_id: number;
   product: string;
   quantity: number;
   status: 'pending' | 'processing' | 'loaded' | 'delivered' | 'cancelled';
   address: string;
-  coordinate: string | {
-    lat: number;
-    lng: number;
-  };
   route_id?: number;
   created_at: string;
   // Optional fields that may come from other endpoints or may not always be present
+  client_id?: number;
+  coordinate?: string | {
+    lat: number;
+    lng: number;
+  };
   priority?: 'standard' | 'express' | 'urgent';
   estimatedDelivery?: string;
   actualDelivery?: string;
@@ -129,7 +129,7 @@ export const getCustomerOrders = async (): Promise<Order[]> => {
   }
 
   const data = await response.json();
-  return data.response.orders;
+  return data.response.orders.order;
 };
 
 /**
@@ -276,7 +276,7 @@ export const getCustomerRecentActivity = async (): Promise<Array<{
       type: 'order_created' as const,
       trackingNumber: order.trackingNumber || `ORD-${order.id}`,
       orderId: order.id.toString(),
-      message: `New order created - ${order.packageType || order.product}`,
+      message: `New order created - ${order.product}`,
       timestamp: order.created_at
     });
     

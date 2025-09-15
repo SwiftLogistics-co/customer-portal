@@ -28,12 +28,13 @@ const MyOrders: React.FC = () => {
   const filteredOrders = orders?.filter(order => {
     const matchesSearch = !searchQuery || 
       order.id.toString().includes(searchQuery.toLowerCase()) ||
-      order.recipientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (order.recipientName && order.recipientName.toLowerCase().includes(searchQuery.toLowerCase())) ||
       order.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.trackingNumber.toLowerCase().includes(searchQuery.toLowerCase());
+      (order.trackingNumber && order.trackingNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      order.product.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    const matchesPriority = priorityFilter === 'all' || order.priority === priorityFilter;
+    const matchesPriority = priorityFilter === 'all' || (order.priority && order.priority === priorityFilter);
     
     return matchesSearch && matchesStatus && matchesPriority;
   }) || [];
@@ -49,19 +50,17 @@ const MyOrders: React.FC = () => {
     }
 
     // Create CSV content
-    const headers = ['Order ID', 'Recipient', 'Status', 'Priority', 'Created', 'Est. Delivery', 'Tracking', 'Package Type', 'Weight'];
+    const headers = ['Order ID', 'Product', 'Quantity', 'Status', 'Address', 'Route ID', 'Created'];
     const csvContent = [
       headers.join(','),
       ...filteredOrders.map(order => [
         order.id.toString(),
-        `"${order.recipientName}"`,
+        `"${order.product}"`,
+        order.quantity.toString(),
         order.status,
-        order.priority,
-        format(new Date(order.created_at), 'yyyy-MM-dd'),
-        format(new Date(order.estimatedDelivery), 'yyyy-MM-dd'),
-        order.trackingNumber,
-        `"${order.packageType}"`,
-        order.weight
+        `"${order.address}"`,
+        order.route_id?.toString() || '',
+        format(new Date(order.created_at), 'yyyy-MM-dd HH:mm')
       ].join(','))
     ].join('\n');
 

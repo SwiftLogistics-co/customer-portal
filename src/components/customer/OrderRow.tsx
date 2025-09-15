@@ -45,7 +45,7 @@ export const OrderRow: React.FC<OrderRowProps> = ({ order, onView }) => {
       <TableCell className="font-medium">{order.id}</TableCell>
       <TableCell>
         <div>
-          <div className="font-medium">{order.recipientName}</div>
+          <div className="font-medium">{order.product}</div>
           <div className="text-sm text-muted-foreground">{order.address}</div>
         </div>
       </TableCell>
@@ -54,19 +54,16 @@ export const OrderRow: React.FC<OrderRowProps> = ({ order, onView }) => {
           {order.status.replace('_', ' ')}
         </Badge>
       </TableCell>
+      <TableCell>{order.quantity}</TableCell>
+      <TableCell>{order.route_id || 'N/A'}</TableCell>
+      <TableCell>{format(new Date(order.created_at), 'MMM dd, yyyy HH:mm')}</TableCell>
       <TableCell>
-        <Badge variant="outline" className={getPriorityColor(order.priority)}>
-          {order.priority}
-        </Badge>
-      </TableCell>
-      <TableCell>{format(new Date(order.created_at), 'MMM dd, yyyy')}</TableCell>
-      <TableCell>{format(new Date(order.estimatedDelivery), 'MMM dd, yyyy')}</TableCell>
-      <TableCell>{order.trackingNumber}</TableCell>
-      <TableCell>
-        <div>
-          <div className="text-sm">{order.packageType}</div>
-          <div className="text-xs text-muted-foreground">{order.weight}kg</div>
-        </div>
+        {order.priority && (
+          <Badge variant="outline" className={getPriorityColor(order.priority)}>
+            {order.priority}
+          </Badge>
+        )}
+        {!order.priority && <span className="text-muted-foreground">N/A</span>}
       </TableCell>
       <TableCell>
         <Button 
